@@ -33,20 +33,29 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
     const schedule = group.contributionSchedule === 'all_days' ? 'Mon-Sun' : 'Mon-Fri';
     const weeklyRate = group.dailyContribution * (group.contributionSchedule === 'all_days' ? 7 : 5);
     
-    return `💰 *${group.name} Status Update* 💰\n\n` +
-      `📌 *Daily:* GH¢${group.dailyContribution} (${schedule})\n` +
-      `📌 *Weekly:* GH¢${weeklyRate} (Due Sun 5PM)\n` +
-      `📌 *Payout:* GH¢${group.cashOutAmount} every ${group.daysPerCycle} marks\n` +
-      `📌 *MoMo:* ${group.momoDetails}\n\n` +
-      `*Member Status:*\n` +
-      group.members.sort((a,b) => a.position - b.position).map(m => {
-        const isDoneForCycle = m.daysPaid >= (currentRecipientPosition * group.daysPerCycle);
-        const marks = '✅'.repeat(Math.min(7, m.daysPaid % group.daysPerCycle || (m.daysPaid >= (currentRecipientPosition * group.daysPerCycle) ? group.daysPerCycle : 0)));
-        const statusIcon = isDoneForCycle ? '✅' : '❌';
-        const cashOutIcon = m.hasCashedOut ? '💰' : '';
-        return `${m.position}. ${m.name}: ${m.daysPaid} marks ${statusIcon}${cashOutIcon}`;
-      }).join('\n') +
-      `\n\n*Payment via Momo only.* Send screenshot or Use your name as Reference for confirmation.\n\n_Cash out 💰 | Not paid ❌ | Paid ✅_`;
+    const header = `GH¢${group.dailyContribution} daily (${schedule}) for ${group.maxMembers} people. Cash out GH¢${group.cashOutAmount} 💰\n` +
+      `Momo: ${group.momoDetails}\n\n`;
+    
+    const memberList = group.members
+      .sort((a, b) => a.position - b.position)
+      .map(m => {
+        // Calculate marks for the CURRENT cycle
+        const startOfCurrentCycle = (currentRecipientPosition - 1) * group.daysPerCycle;
+        const paidInCurrentCycle = Math.max(0, m.daysPaid - startOfCurrentCycle);
+        const marksCount = Math.min(group.daysPerCycle, paidInCurrentCycle);
+        
+        const marks = '✅'.repeat(marksCount);
+        const cashOutIcon = m.hasCashedOut ? ' 💰' : '';
+        
+        return `${m.position}. ${m.name}${marks ? ' ' + marks : ''}${cashOutIcon}`;
+      })
+      .join('\n');
+      
+    const footer = `\n\nYou have the option to make payments either daily (GH¢${group.dailyContribution}) or weekly (GH¢${weeklyRate}), with the weekly payment due by Sunday at 5pm.\n\n` +
+      `Payment via Momo only. Send screenshot or Use your name as Reference for confirmation\n\n` +
+      `Cash out 💰 | Not paid ❌ | Paid ✅`;
+    
+    return header + memberList + footer;
   };
 
   const copyToClipboard = () => {
@@ -70,7 +79,7 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
           Copy this formatted message to share the circle's current status in your WhatsApp group.
         </p>
         
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-[10px] whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto">
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-[10px] whitespace-pre-wrap leading-relaxed max-h-[400px] overflow-y-auto">
           {generateMessage()}
         </div>
 
