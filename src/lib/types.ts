@@ -4,7 +4,7 @@ export interface Member {
   id: string;
   name: string;
   position: number;
-  daysPaid: number;
+  daysPaid: number; // Cumulative days paid in current cycle
   hasCashedOut: boolean;
   joinDate: string;
   lastPaymentDate?: string;
@@ -16,11 +16,12 @@ export interface SusuGroup {
   dailyContribution: number;
   adminFee: number;
   maxMembers: number;
-  durationInDays: number;
+  durationInWeeks: number; // Total weeks for a full rotation
   paymentFrequency: PaymentFrequency;
   cashOutAmount: number;
   momoDetails: string;
   members: Member[];
+  startDate: string; // The date the first cycle began
   createdAt: string;
 }
 

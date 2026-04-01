@@ -6,15 +6,18 @@ import { GroupTabs } from '@/components/dashboard/group-tabs';
 import { GroupSummary } from '@/components/groups/group-summary';
 import { MemberTracking } from '@/components/members/member-tracking';
 import { AIInsightsPanel } from '@/components/ai/ai-insights-panel';
+import { CreateGroupForm } from '@/components/groups/create-group-form';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Bell, Search, Settings } from 'lucide-react';
+import { Plus, Bell, Search, Settings, X } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
   const [activeGroupId, setActiveGroupId] = useState<string>(INITIAL_GROUPS[0].id);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const activeGroup = useMemo(() => 
     groups.find(g => g.id === activeGroupId) || groups[0], 
@@ -29,11 +32,11 @@ export default function Dashboard() {
 
     groups.forEach(g => {
       totalMembers += g.members.length;
-      adminProfit += g.members.length * g.adminFee;
+      adminProfit += g.members.length * g.adminFee; // Profit per cycle logic
       g.members.forEach(m => {
         totalCollected += m.daysPaid * g.dailyContribution;
-        // Simple logic for defaulter count for the dashboard
-        if (m.daysPaid < 5 && !m.hasCashedOut) defaulterCount++;
+        // Member is behind if they have less than 7 days paid in the current week (simplified logic)
+        if (m.daysPaid < 7 && !m.hasCashedOut) defaulterCount++;
       });
     });
 
@@ -50,34 +53,18 @@ export default function Dashboard() {
     }));
   };
 
-  const handleCreateGroup = () => {
-    // Logic for new group dialog would go here
-    const newId = `group-${Date.now()}`;
-    const newGroup: SusuGroup = {
-      id: newId,
-      name: 'New Susu Circle',
-      dailyContribution: 20,
-      adminFee: 20,
-      maxMembers: 10,
-      durationInDays: 30,
-      paymentFrequency: 'daily',
-      cashOutAmount: 200,
-      momoDetails: 'N/A',
-      createdAt: new Date().toISOString(),
-      members: [
-        { id: `m-${Date.now()}`, name: 'Group Admin', position: 1, daysPaid: 1, hasCashedOut: false, joinDate: new Date().toISOString() }
-      ]
-    };
+  const handleCreateGroup = (newGroup: SusuGroup) => {
     setGroups([...groups, newGroup]);
-    setActiveGroupId(newId);
+    setActiveGroupId(newGroup.id);
+    setIsCreateOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-background font-body pb-12">
       <header className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
         <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">SusuPulse</h1>
-          <p className="text-xs font-bold text-primary uppercase tracking-widest">Administrator</p>
+          <h1 className="text-2xl font-black text-foreground tracking-tight italic">SusuPulse</h1>
+          <p className="text-xs font-bold text-primary uppercase tracking-widest">Master Admin</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white">
@@ -102,13 +89,13 @@ export default function Dashboard() {
         {/* Group Selector */}
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-wider">Active Groups</h2>
+            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-wider">Active Circles</h2>
           </div>
           <GroupTabs 
             groups={groups} 
             activeGroupId={activeGroupId} 
             onSelect={setActiveGroupId} 
-            onCreate={handleCreateGroup}
+            onCreate={() => setIsCreateOpen(true)}
           />
         </div>
 
@@ -125,14 +112,25 @@ export default function Dashboard() {
             />
 
             <div className="pt-4 flex justify-center">
-               <Button className="w-full h-12 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2">
+               <Button variant="secondary" className="w-full h-12 rounded-xl border border-primary/10 flex items-center gap-2 font-bold">
                  <Plus className="h-5 w-5" />
-                 Add New Member
+                 Add Member to {activeGroup.name}
                </Button>
             </div>
           </div>
         )}
       </main>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-6">
+          <DialogTitle className="sr-only">Create New Susu Circle</DialogTitle>
+          <CreateGroupForm 
+            onSubmit={handleCreateGroup} 
+            onCancel={() => setIsCreateOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
+
       <Toaster />
     </div>
   );
