@@ -1,0 +1,337 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user within the SusuPulse application, who can act as an administrator or a group member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user, used for communication and identification.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The primary phone number of the user, often used for Mobile Money (MoMo) transactions and contact."
+        },
+        "userRole": {
+          "type": "string",
+          "description": "The role of the user within the application, defining their permissions and access level. (Enum: 'admin', 'member')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email",
+        "phoneNumber",
+        "userRole",
+        "createdAt"
+      ]
+    },
+    "SusuGroup": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SusuGroup",
+      "type": "object",
+      "description": "Defines the parameters and current state of a Susu contribution group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SusuGroup entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The descriptive name of the Susu group."
+        },
+        "dailyContributionAmount": {
+          "type": "number",
+          "description": "The standard daily contribution amount expected from each member."
+        },
+        "adminFeePercentage": {
+          "type": "number",
+          "description": "The percentage charged as an admin fee on contributions for the group (e.g., 5 for 5%)."
+        },
+        "maxMembers": {
+          "type": "number",
+          "description": "The maximum number of members allowed in this Susu group."
+        },
+        "totalDurationInDays": {
+          "type": "number",
+          "description": "The total planned duration of the Susu group in days."
+        },
+        "paymentFrequency": {
+          "type": "string",
+          "description": "Specifies how often members typically make payments (Enum: 'daily', 'weekly')."
+        },
+        "weeklyPaymentDeadlineDay": {
+          "type": "string",
+          "description": "The day of the week when weekly payments are due, if paymentFrequency is 'weekly'. (Enum: 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'). This field is optional if paymentFrequency is 'daily'."
+        },
+        "fixedCashOutAmount": {
+          "type": "number",
+          "description": "The fixed amount each member receives when they cash out from the Susu group."
+        },
+        "groupMomoDescription": {
+          "type": "string",
+          "description": "A descriptive identifier for the Mobile Money (MoMo) account associated with the Susu group for collective transactions."
+        },
+        "adminId": {
+          "type": "string",
+          "description": "Reference to the UserProfile ID of the administrator who created or manages this Susu group. (Relationship: UserProfile 1:N SusuGroup)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the Susu group was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the Susu group details were last updated.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current operational status of the Susu group. (Enum: 'active', 'completed', 'cancelled')."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "dailyContributionAmount",
+        "adminFeePercentage",
+        "maxMembers",
+        "totalDurationInDays",
+        "paymentFrequency",
+        "fixedCashOutAmount",
+        "adminId",
+        "createdAt",
+        "status"
+      ]
+    },
+    "SusuMembership": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SusuMembership",
+      "type": "object",
+      "description": "Represents a member's specific involvement and status within a Susu group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the SusuMembership entity."
+        },
+        "susuGroupId": {
+          "type": "string",
+          "description": "Reference to the SusuGroup this membership belongs to. (Relationship: SusuGroup 1:N SusuMembership)"
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to the UserProfile ID of the member. (Relationship: UserProfile 1:N SusuMembership)"
+        },
+        "payoutOrder": {
+          "type": "number",
+          "description": "The sequential order in which this member is scheduled to receive their cash out."
+        },
+        "isCashedOut": {
+          "type": "boolean",
+          "description": "Indicates whether the member has received their cash out payment."
+        },
+        "cashedOutDate": {
+          "type": "string",
+          "description": "Timestamp when the member officially cashed out. This field is optional and present only if isCashedOut is true.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current payment status of the member within the group. (Enum: 'active', 'behind', 'cashedOut')."
+        },
+        "joinedAt": {
+          "type": "string",
+          "description": "Timestamp when the member joined this Susu group.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "susuGroupId",
+        "memberId",
+        "payoutOrder",
+        "isCashedOut",
+        "status",
+        "joinedAt"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Records an individual contribution payment made by a Susu group member.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Payment entity."
+        },
+        "susuMembershipId": {
+          "type": "string",
+          "description": "Reference to the SusuMembership for which this payment was made. (Relationship: SusuMembership 1:N Payment)"
+        },
+        "paymentDate": {
+          "type": "string",
+          "description": "The date and time when the payment was recorded in the system.",
+          "format": "date-time"
+        },
+        "amountPaid": {
+          "type": "number",
+          "description": "The actual amount of money paid in this transaction."
+        },
+        "contributionDaysCovered": {
+          "type": "number",
+          "description": "The number of daily contributions this single payment covers (e.g., 1 for daily, 7 for weekly)."
+        },
+        "paymentPeriodStartDate": {
+          "type": "string",
+          "description": "The calendar start date of the period this payment is intended to cover.",
+          "format": "date-time"
+        },
+        "paymentPeriodEndDate": {
+          "type": "string",
+          "description": "The calendar end date of the period this payment is intended to cover.",
+          "format": "date-time"
+        },
+        "recordedByAdminId": {
+          "type": "string",
+          "description": "Reference to the UserProfile ID of the administrator who recorded this payment. (Relationship: UserProfile 1:N Payment)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the payment record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the payment record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "susuMembershipId",
+        "paymentDate",
+        "amountPaid",
+        "contributionDaysCovered",
+        "paymentPeriodStartDate",
+        "paymentPeriodEndDate",
+        "recordedByAdminId",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. Access is restricted to the owner (request.auth.uid == userId). The 'userRole' field indicates a user's primary role. The document ID corresponds to the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, matching Firebase Authentication UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/susu_groups/{susuGroupId}",
+        "definition": {
+          "entityName": "SusuGroup",
+          "schema": {
+            "$ref": "#/backend/entities/SusuGroup"
+          },
+          "description": "Stores details for each Susu group. Includes 'adminId' (the owner). For authorization independence and secure QAPs, each document includes a denormalized 'memberUids' map (e.g., { 'uid1': true, 'uid2': true }) to efficiently check group membership.",
+          "params": [
+            {
+              "name": "susuGroupId",
+              "description": "The unique identifier for the Susu group."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/susu_groups/{susuGroupId}/memberships/{memberId}",
+        "definition": {
+          "entityName": "SusuMembership",
+          "schema": {
+            "$ref": "#/backend/entities/SusuMembership"
+          },
+          "description": "Represents a user's membership within a specific Susu group. The document ID is the 'memberId'. Includes denormalized 'susuGroupAdminId' (copied from the parent SusuGroup) for authorization independence for the group's admin. The 'memberId' field within the document will match the document ID.",
+          "params": [
+            {
+              "name": "susuGroupId",
+              "description": "The unique identifier for the parent Susu group."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique identifier of the user who is a member, also serving as the document ID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/susu_groups/{susuGroupId}/memberships/{memberId}/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Records individual contribution payments. Includes denormalized 'susuGroupId', 'memberId', and 'susuGroupAdminId' for authorization independence, allowing rules to operate directly on the document's fields.",
+          "params": [
+            {
+              "name": "susuGroupId",
+              "description": "The unique identifier for the parent Susu group."
+            },
+            {
+              "name": "memberId",
+              "description": "The unique identifier of the member making the payment."
+            },
+            {
+              "name": "paymentId",
+              "description": "The unique identifier for the payment record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure prioritizes Authorization Independence and Query-Aware Permissions (QAPs) by strategically denormalizing authorization-relevant fields. This design ensures that security rules are simple, robust, and debuggable, avoiding complex `get()` calls.\n\n1.  **User Profiles (`/users/{userId}`):** User profiles are stored in a top-level collection, with each document ID matching the Firebase Authentication UID (`userId`). This establishes clear ownership and allows direct access control where `request.auth.uid == userId`. The `userRole` field within `UserProfile` can define general user types (e.g., 'admin', 'member'). For explicit global administration roles, a separate collection like `/global_admins/{uid}` is recommended, where the mere existence of a document grants global admin privileges, embodying the 'Existence over Content' principle.\n\n2.  **Susu Groups (`/susu_groups/{susuGroupId}`):** Susu groups are also top-level entities to facilitate global queries and discovery. Each `SusuGroup` document explicitly contains its `adminId`. For Authorization Independence and QAPs, each `SusuGroup` document **MUST** also denormalize a `memberUids` map (e.g., `memberUids: { 'uid1': true, 'uid2': true }`). This allows security rules to quickly verify if `request.auth.uid` is the group admin or a member without additional `get()` calls, making secure `list` operations for a user's groups efficient.\n\n3.  **Susu Memberships (`/susu_groups/{susuGroupId}/memberships/{memberId}`):** `SusuMembership` documents are nested as a subcollection under their respective `SusuGroup`. The document ID for a `SusuMembership` is set to the `memberId` (UserProfile ID) of the member. This path structure immediately identifies the associated group and member. For Authorization Independence, each `SusuMembership` document **MUST** denormalize the `susuGroupAdminId` (copied from its parent `SusuGroup`) to allow group administrators access to membership details without needing to read the parent `SusuGroup` document in a rule. Member-specific access is straightforward as `request.auth.uid == memberId` (the document ID).\n\n4.  **Payments (`/susu_groups/{susuGroupId}/memberships/{memberId}/payments/{paymentId}`):** `Payment` records are nested as a subcollection under their respective `SusuMembership`. This deep nesting logically organizes payments. For Authorization Independence, each `Payment` document **MUST** denormalize `susuGroupId`, `memberId`, and `susuGroupAdminId`. This ensures that any `Payment` document can be authorized directly by the group's admin (`request.auth.uid == susuGroupAdminId`), the specific member making/receiving the payment (`request.auth.uid == memberId`), or the recording admin (`request.auth.uid == recordedByAdminId`) without resorting to expensive `get()` calls on parent documents.\n\nThis structure ensures that rules can explicitly define access based solely on the document's own fields and `request.auth.uid`, making authorization clear, efficient, and debuggable while supporting the application's query patterns."
+  }
+}

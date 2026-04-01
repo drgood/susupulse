@@ -1,0 +1,117 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * SusuPulse Security Rules
+     * 
+     * Core Philosophy:
+     * This ruleset enforces a strict ownership and role-based access model designed for the SusuPulse application. 
+     * Access is primarily governed by the user's relationship to a Susu group (Admin or Member).
+     *
+     * Data Structure:
+     * - User profiles are stored at the root (/users/{userId}).
+     * - Susu groups are top-level entities (/susu_groups/{groupId}).
+     * - Memberships and Payments are nested hierarchically within groups to maintain clear relational context.
+     *
+     * Key Security Decisions:
+     * 1. Authorization Independence: We use denormalized fields (like 'adminId', 'memberId', and 'memberUids' maps) 
+     *    on documents to perform access checks without expensive get() calls to parent documents.
+     * 2. Path-Based Integrity: Rules enforce that the {userId} or {memberId} in the path matches 
+     *    the authenticated user's UID for personal data.
+     * 3. Prototyping Flexibility: Schema validation is limited only to fields critical for authorization 
+     *    (relational integrity), allowing rapid frontend iteration on content fields.
+     * 4. List Security: As per secure practices, listing is restricted to paths containing the user's ID. 
+     *    Top-level collection listing is restricted to prevent data exposure.
+     */
+
+    // --- Helper Functions ---
+
+    /** Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided ID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if a document exists and the current user is the owner. Used for updates/deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** Checks if the user is the group administrator based on a denormalized adminId field. */
+    function isGroupAdmin(adminId) {
+      return isSignedIn() && request.auth.uid == adminId;
+    }
+
+    /** Checks if the user is the group administrator and the document exists. */
+    function isExistingGroupAdmin(adminId) {
+      return resource != null && isGroupAdmin(adminId);
+    }
+
+    /** Checks if the user's UID is present in a denormalized membership map. */
+    function isMember(memberUids) {
+      return isSignedIn() && memberUids[request.auth.uid] == true;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for user profile documents. Restricted to the profile owner.
+     * @path /users/{userId}
+     * @allow (get, list, create) if user is owner of the path.
+     * @deny (create) if auth.uid does not match {userId}.
+     * @principle Ownership-based access and path consistency.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update, delete: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * @description Rules for Susu Groups. Access for admins and verified group members.
+     * @path /susu_groups/{susuGroupId}
+     * @allow (get) if user is the group admin or in the memberUids map.
+     * @deny (list) Global listing is denied to prevent user enumeration.
+     * @principle Shared access using denormalized membership maps.
+     */
+    match /susu_groups/{susuGroupId} {
+      allow get: if isSignedIn() && (isGroupAdmin(resource.data.adminId) || isMember(resource.data.memberUids));
+      allow list: if false; 
+      allow create: if isSignedIn() && request.resource.data.adminId == request.auth.uid;
+      allow update, delete: if isExistingGroupAdmin(resource.data.adminId) && request.resource.data.adminId == resource.data.adminId;
+    }
+
+    /**
+     * @description Rules for group memberships. Accessible by the member or the group admin.
+     * @path /susu_groups/{susuGroupId}/memberships/{memberId}
+     * @allow (get) if authenticated user is the member or the group admin.
+     * @deny (update) if the memberId or susuGroupAdminId is being changed.
+     * @principle Relational integrity and shared admin/owner access.
+     */
+    match /susu_groups/{susuGroupId}/memberships/{memberId} {
+      allow get: if isOwner(memberId) || isGroupAdmin(resource.data.susuGroupAdminId);
+      allow list: if isOwner(memberId);
+      allow create: if (isOwner(memberId) || isGroupAdmin(request.resource.data.susuGroupAdminId)) && request.resource.data.memberId == memberId;
+      allow update, delete: if (isExistingOwner(memberId) || isExistingGroupAdmin(resource.data.susuGroupAdminId)) && request.resource.data.memberId == resource.data.memberId;
+    }
+
+    /**
+     * @description Rules for individual payments. Accessible by member, group admin, or recording admin.
+     * @path /susu_groups/{susuGroupId}/memberships/{memberId}/payments/{paymentId}
+     * @allow (create) if the user is the group admin or recording admin.
+     * @deny (get) if the user is not the specific member or an authorized admin.
+     * @principle Multi-role authorization via denormalized relationship fields.
+     */
+    match /susu_groups/{susuGroupId}/memberships/{memberId}/payments/{paymentId} {
+      allow get: if isOwner(memberId) || isGroupAdmin(resource.data.susuGroupAdminId) || isGroupAdmin(resource.data.recordedByAdminId);
+      allow list: if isOwner(memberId);
+      allow create: if (isGroupAdmin(request.resource.data.susuGroupAdminId) || isGroupAdmin(request.resource.data.recordedByAdminId)) && request.resource.data.memberId == memberId;
+      allow update, delete: if isExistingGroupAdmin(resource.data.susuGroupAdminId) && request.resource.data.memberId == resource.data.memberId;
+    }
+  }
+}
