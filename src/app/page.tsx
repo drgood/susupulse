@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
-import { GroupTabs } from '@/components/dashboard/group-tabs';
+import { CircleSwitcher } from '@/components/dashboard/circle-switcher';
 import { GroupSummary } from '@/components/groups/group-summary';
 import { MemberTracking } from '@/components/members/member-tracking';
 import { AIInsightsPanel } from '@/components/ai/ai-insights-panel';
@@ -58,7 +58,6 @@ export default function Dashboard() {
 
       g.members.forEach(m => {
         totalCollected += m.daysPaid * g.dailyContribution;
-        // Profit is calculated as the sum of the fee from every day paid across all members
         adminProfit += m.daysPaid * (g.feePerMark || 1);
         if (m.daysPaid < targetMarks && !m.hasCashedOut) defaulterCount++;
       });
@@ -97,9 +96,14 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background font-body pb-20">
       <header className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight italic">SusuPulse</h1>
-          <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Master Admin Dashboard</p>
+        <div className="flex flex-col">
+          <h1 className="text-sm font-black text-muted-foreground uppercase tracking-tight italic">SusuPulse</h1>
+          <CircleSwitcher 
+            groups={groups} 
+            activeGroupId={activeGroupId} 
+            onSelect={setActiveGroupId} 
+            onCreate={() => setIsCreateOpen(true)}
+          />
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white">
@@ -112,20 +116,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="px-5 space-y-6 max-w-2xl mx-auto">
+      <main className="px-5 space-y-6 max-w-2xl mx-auto mt-4">
         <StatsGrid stats={globalStats} />
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Active Circles</h2>
-          </div>
-          <GroupTabs 
-            groups={groups} 
-            activeGroupId={activeGroupId} 
-            onSelect={setActiveGroupId} 
-            onCreate={() => setIsCreateOpen(true)}
-          />
-        </div>
 
         {activeGroup && (
           <div className="space-y-6">
