@@ -4,7 +4,7 @@ import { SusuGroup } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Award, Calendar, Wallet, Info, TrendingUp, Users } from 'lucide-react';
+import { Award, Calendar, Wallet, Info, TrendingUp, Users, Landmark } from 'lucide-react';
 import { differenceInCalendarDays, isWeekend } from 'date-fns';
 
 export function GroupSummary({ group }: { group: SusuGroup }) {
