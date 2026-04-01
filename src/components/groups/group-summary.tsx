@@ -4,19 +4,32 @@ import { SusuGroup } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Award, Calendar, Wallet } from 'lucide-react';
-import { differenceInWeeks } from 'date-fns';
+import { Award, Calendar, Wallet, Info } from 'lucide-react';
+import { differenceInCalendarDays, isWeekend } from 'date-fns';
 
 export function GroupSummary({ group }: { group: SusuGroup }) {
-  // Calculate current week based on start date
-  const now = new Date();
-  const start = new Date(group.startDate);
-  const currentWeekIndex = Math.max(0, differenceInWeeks(now, start));
+  // Logic to calculate active days passed
+  const calculateActiveDaysPassed = () => {
+    const now = new Date();
+    const start = new Date(group.startDate);
+    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
+    
+    if (group.contributionSchedule === 'all_days') return totalDays;
+    
+    // Count only weekdays
+    let activeDays = 0;
+    for (let i = 0; i <= totalDays; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      if (!isWeekend(d)) activeDays++;
+    }
+    return activeDays;
+  };
+
+  const activeDaysPassed = calculateActiveDaysPassed();
+  const currentCycleIndex = Math.floor(activeDaysPassed / group.daysPerCycle);
+  const currentRecipient = group.members.find(m => m.position === (currentCycleIndex + 1)) || group.members[0];
   
-  // Rotating recipient based on position
-  const currentRecipient = group.members.find(m => m.position === (currentWeekIndex + 1)) || group.members[0];
-  
-  const weeklyCollection = group.maxMembers * group.dailyContribution * 7;
   const totalCollectedSoFar = group.members.reduce((acc, m) => acc + (m.daysPaid * group.dailyContribution), 0);
 
   return (
@@ -24,7 +37,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-bold">Group Pulse</CardTitle>
         <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none">
-          Week {currentWeekIndex + 1} of {group.durationInWeeks}
+          Cycle {currentCycleIndex + 1} of {group.durationInWeeks}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -32,10 +45,10 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
           <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center text-white shadow-lg shadow-accent/20">
             <Award className="h-6 w-6" />
           </div>
-          <div>
-            <p className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">Weekly Recipient</p>
+          <div className="flex-1">
+            <p className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">Current Recipient</p>
             <h3 className="text-xl font-black">{currentRecipient?.name}</h3>
-            <p className="text-xs text-muted-foreground">Due: GH¢ {group.cashOutAmount.toLocaleString()} this Sunday</p>
+            <p className="text-xs text-muted-foreground">Pot: GH¢ {group.cashOutAmount.toLocaleString()}</p>
           </div>
         </div>
 
@@ -52,7 +65,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
               <Calendar className="h-3 w-3" />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Weekly Profit</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">Cycle Profit</span>
             </div>
             <p className="text-2xl font-black text-accent leading-none">
               GH¢ {group.adminFee.toLocaleString()}
@@ -64,12 +77,20 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
         
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground font-medium">Daily Contribution</span>
-            <span className="font-bold">GH¢ {group.dailyContribution}</span>
+            <span className="text-muted-foreground font-medium">Schedule</span>
+            <span className="font-bold">{group.contributionSchedule === 'all_days' ? 'Mon-Sun' : 'Mon-Fri'}</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground font-medium">Payment Rule</span>
-            <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">Weekly due Sunday 5PM</span>
+            <span className="text-muted-foreground font-medium">Payout Interval</span>
+            <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">
+              Every {group.daysPerCycle} active marks
+            </Badge>
+          </div>
+          <div className="flex items-start gap-2 mt-2 p-2 bg-muted/30 rounded-lg">
+            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Recipients rotate every {group.daysPerCycle} marks. Current position: {currentCycleIndex + 1}.
+            </p>
           </div>
         </div>
       </CardContent>

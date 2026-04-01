@@ -9,9 +9,11 @@ export const INITIAL_GROUPS: SusuGroup[] = [
     maxMembers: 20,
     durationInWeeks: 20,
     paymentFrequency: 'daily',
+    contributionSchedule: 'all_days',
+    daysPerCycle: 7,
     cashOutAmount: 2800,
     momoDetails: '0209489849 - Sung Shmair Mumuni',
-    startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // Started 3 days ago (Week 1)
+    startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), 
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     members: [
       { id: 'm1', name: 'Safia', position: 1, daysPaid: 2, hasCashedOut: false, joinDate: new Date().toISOString() },

@@ -6,14 +6,17 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { SusuGroup } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SusuGroup, ContributionSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Landmark, Users, Calendar as CalendarIcon, Wallet } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Wallet, Settings2 } from 'lucide-react';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   dailyContribution: z.coerce.number().min(1, 'Minimum 1 GH¢'),
   maxMembers: z.coerce.number().min(2, 'At least 2 members'),
+  daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
+  contributionSchedule: z.enum(['all_days', 'weekdays_only']),
   cashOutAmount: z.coerce.number().min(1, 'Required'),
   momoDetails: z.string().min(5, 'Required'),
   startDate: z.string().min(1, 'Required'),
@@ -31,6 +34,8 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       name: '',
       dailyContribution: 21,
       maxMembers: 20,
+      daysPerCycle: 7,
+      contributionSchedule: 'all_days',
       cashOutAmount: 2800,
       momoDetails: '',
       startDate: new Date().toISOString().split('T')[0],
@@ -40,10 +45,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
   const daily = form.watch('dailyContribution');
   const members = form.watch('maxMembers');
   const cashOut = form.watch('cashOutAmount');
+  const daysPerCycle = form.watch('daysPerCycle');
 
-  // Logic: 20 members * 21 GH¢ * 7 days = 2940. Admin Profit = 2940 - 2800 = 140 per week.
-  const weeklyCollection = daily * members * 7;
-  const weeklyProfit = weeklyCollection - cashOut;
+  // Revenue = Daily * Members * Days Per Payout
+  const collectionPerCycle = daily * members * daysPerCycle;
+  const profitPerCycle = collectionPerCycle - cashOut;
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const newGroup: SusuGroup = {
@@ -51,9 +57,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       name: values.name,
       dailyContribution: values.dailyContribution,
       maxMembers: values.maxMembers,
-      adminFee: weeklyProfit,
+      adminFee: profitPerCycle,
       durationInWeeks: values.maxMembers,
       paymentFrequency: 'daily',
+      contributionSchedule: values.contributionSchedule as ContributionSchedule,
+      daysPerCycle: values.daysPerCycle,
       cashOutAmount: values.cashOutAmount,
       momoDetails: values.momoDetails,
       startDate: new Date(values.startDate).toISOString(),
@@ -85,7 +93,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 <FormItem>
                   <FormLabel>Group Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Susu Circle 02" {...field} />
+                    <Input placeholder="e.g. Daily Circle 01" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,7 +106,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="dailyContribution"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Daily (GH¢)</FormLabel>
+                    <FormLabel>Contribution (GH¢)</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Wallet className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -127,16 +135,56 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="daysPerCycle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Days per Payout</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Settings2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input type="number" className="pl-9" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormDescription>e.g. 7 for weekly, 3 for every 3 days</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="contributionSchedule"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Active Days</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select schedule" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all_days">Mon - Sun</SelectItem>
+                        <SelectItem value="weekdays_only">Mon - Fri</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="cashOutAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Weekly Cash Out (GH¢)</FormLabel>
+                  <FormLabel>Cash Out Per Cycle (GH¢)</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
-                  <FormDescription>Amount given to 1 person every Sunday.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -174,14 +222,18 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
             />
 
             <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-2">
-              <h4 className="text-xs font-black text-primary uppercase tracking-wider">Calculated Revenue</h4>
+              <h4 className="text-xs font-black text-primary uppercase tracking-wider">Revenue Analysis</h4>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Weekly Collection:</span>
-                <span className="font-bold">GH¢ {weeklyCollection.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground">Total Pot per Cycle:</span>
+                <span className="font-bold">GH¢ {collectionPerCycle.toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Your Profit / Week:</span>
-                <span className="font-bold text-accent">GH¢ {weeklyProfit.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground">Your Profit per Payout:</span>
+                <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Cycle Duration:</span>
+                <span className="text-xs font-bold">{daysPerCycle} active marks</span>
               </div>
             </div>
 

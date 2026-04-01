@@ -10,9 +10,10 @@ import { CreateGroupForm } from '@/components/groups/create-group-form';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Bell, Search, Settings, X } from 'lucide-react';
+import { Plus, Bell, Search, Settings } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { differenceInCalendarDays, isWeekend } from 'date-fns';
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
@@ -30,14 +31,36 @@ export default function Dashboard() {
     let adminProfit = 0;
     let defaulterCount = 0;
 
+    const now = new Date();
+
     groups.forEach(g => {
       totalMembers += g.members.length;
-      adminProfit += g.members.length * g.adminFee; // Profit per cycle logic
+      
+      // Calculate active days passed to determine target marks
+      const start = new Date(g.startDate);
+      const totalDays = Math.max(0, differenceInCalendarDays(now, start));
+      let activeDaysPassed = 0;
+      if (g.contributionSchedule === 'all_days') {
+        activeDaysPassed = totalDays;
+      } else {
+        for (let i = 0; i <= totalDays; i++) {
+          const d = new Date(start);
+          d.setDate(d.getDate() + i);
+          if (!isWeekend(d)) activeDaysPassed++;
+        }
+      }
+
+      // Expected marks for everyone up to now
+      const targetMarks = activeDaysPassed;
+
       g.members.forEach(m => {
         totalCollected += m.daysPaid * g.dailyContribution;
-        // Member is behind if they have less than 7 days paid in the current week (simplified logic)
-        if (m.daysPaid < 7 && !m.hasCashedOut) defaulterCount++;
+        if (m.daysPaid < targetMarks && !m.hasCashedOut) defaulterCount++;
       });
+      
+      // Admin profit is based on cycles completed
+      const completedCycles = Math.floor(activeDaysPassed / g.daysPerCycle);
+      adminProfit += completedCycles * g.adminFee;
     });
 
     return { totalMembers, totalCollected, adminProfit, defaulterCount };
@@ -81,12 +104,10 @@ export default function Dashboard() {
       </header>
 
       <main className="px-5 space-y-6 max-w-2xl mx-auto">
-        {/* Global Overview */}
         <div className="space-y-3">
           <StatsGrid stats={globalStats} />
         </div>
 
-        {/* Group Selector */}
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-black text-muted-foreground uppercase tracking-wider">Active Circles</h2>
@@ -99,7 +120,6 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Active Group Content */}
         {activeGroup && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <GroupSummary group={activeGroup} />

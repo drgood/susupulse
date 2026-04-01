@@ -1,10 +1,11 @@
 export type PaymentFrequency = 'daily' | 'weekly';
+export type ContributionSchedule = 'all_days' | 'weekdays_only';
 
 export interface Member {
   id: string;
   name: string;
   position: number;
-  daysPaid: number; // Cumulative days paid in current cycle
+  daysPaid: number; // Cumulative days paid
   hasCashedOut: boolean;
   joinDate: string;
   lastPaymentDate?: string;
@@ -16,8 +17,10 @@ export interface SusuGroup {
   dailyContribution: number;
   adminFee: number;
   maxMembers: number;
-  durationInWeeks: number; // Total weeks for a full rotation
+  durationInWeeks: number; // Total cycles for a full rotation
   paymentFrequency: PaymentFrequency;
+  contributionSchedule: ContributionSchedule;
+  daysPerCycle: number; // How many marks (contribution days) per payout
   cashOutAmount: number;
   momoDetails: string;
   members: Member[];
