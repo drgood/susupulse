@@ -7,18 +7,23 @@ import { GroupSummary } from '@/components/groups/group-summary';
 import { MemberTracking } from '@/components/members/member-tracking';
 import { AIInsightsPanel } from '@/components/ai/ai-insights-panel';
 import { CreateGroupForm } from '@/components/groups/create-group-form';
+import { WhatsAppShare } from '@/components/share/whatsapp-share';
+import { GroupSettings } from '@/components/groups/group-settings';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Bell, Search, Settings } from 'lucide-react';
+import { Plus, Bell, Search, Settings, Users, BarChart3, Share2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
   const [activeGroupId, setActiveGroupId] = useState<string>(INITIAL_GROUPS[0].id);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('members');
 
   const activeGroup = useMemo(() => 
     groups.find(g => g.id === activeGroupId) || groups[0], 
@@ -36,7 +41,6 @@ export default function Dashboard() {
     groups.forEach(g => {
       totalMembers += g.members.length;
       
-      // Calculate active days passed to determine target marks
       const start = new Date(g.startDate);
       const totalDays = Math.max(0, differenceInCalendarDays(now, start));
       let activeDaysPassed = 0;
@@ -50,17 +54,15 @@ export default function Dashboard() {
         }
       }
 
-      // Expected marks for everyone up to now
-      const targetMarks = activeDaysPassed;
+      const currentCycleIndex = Math.floor(activeDaysPassed / g.daysPerCycle);
+      const targetMarks = (currentCycleIndex + 1) * g.daysPerCycle;
 
       g.members.forEach(m => {
         totalCollected += m.daysPaid * g.dailyContribution;
         if (m.daysPaid < targetMarks && !m.hasCashedOut) defaulterCount++;
       });
       
-      // Admin profit is based on cycles completed
-      const completedCycles = Math.floor(activeDaysPassed / g.daysPerCycle);
-      adminProfit += completedCycles * g.adminFee;
+      adminProfit += currentCycleIndex * g.adminFee;
     });
 
     return { totalMembers, totalCollected, adminProfit, defaulterCount };
@@ -76,6 +78,17 @@ export default function Dashboard() {
     }));
   };
 
+  const updateGroup = (groupId: string, updates: Partial<SusuGroup>) => {
+    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, ...updates } : g));
+  };
+
+  const deleteGroup = (groupId: string) => {
+    if (groups.length <= 1) return;
+    const newGroups = groups.filter(g => g.id !== groupId);
+    setGroups(newGroups);
+    setActiveGroupId(newGroups[0].id);
+  };
+
   const handleCreateGroup = (newGroup: SusuGroup) => {
     setGroups([...groups, newGroup]);
     setActiveGroupId(newGroup.id);
@@ -83,11 +96,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background font-body pb-12">
+    <div className="min-h-screen bg-background font-body pb-20">
       <header className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
         <div>
           <h1 className="text-2xl font-black text-foreground tracking-tight italic">SusuPulse</h1>
-          <p className="text-xs font-bold text-primary uppercase tracking-widest">Master Admin</p>
+          <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Master Admin Dashboard</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white">
@@ -97,20 +110,15 @@ export default function Dashboard() {
             <Bell className="h-5 w-5 text-muted-foreground" />
             <span className="absolute top-2 right-2 h-2 w-2 bg-accent rounded-full border-2 border-white"></span>
           </Button>
-          <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-          </Button>
         </div>
       </header>
 
       <main className="px-5 space-y-6 max-w-2xl mx-auto">
-        <div className="space-y-3">
-          <StatsGrid stats={globalStats} />
-        </div>
+        <StatsGrid stats={globalStats} />
 
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-black text-muted-foreground uppercase tracking-wider">Active Circles</h2>
+            <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Active Circles</h2>
           </div>
           <GroupTabs 
             groups={groups} 
@@ -121,22 +129,53 @@ export default function Dashboard() {
         </div>
 
         {activeGroup && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <GroupSummary group={activeGroup} />
-            
-            <AIInsightsPanel group={activeGroup} />
-            
-            <MemberTracking 
-              group={activeGroup} 
-              onUpdateMember={updateMember} 
-            />
+          <div className="space-y-6">
+            <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-4 h-12 p-1 bg-white border border-border rounded-xl">
+                <TabsTrigger value="members" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Users className="h-4 w-4 mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-tight">Members</span>
+                </TabsTrigger>
+                <TabsTrigger value="summary" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <BarChart3 className="h-4 w-4 mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-tight">Summary</span>
+                </TabsTrigger>
+                <TabsTrigger value="share" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Share2 className="h-4 w-4 mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-tight">Share</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Settings className="h-4 w-4 mr-1.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-tight">Settings</span>
+                </TabsTrigger>
+              </TabsList>
 
-            <div className="pt-4 flex justify-center">
-               <Button variant="secondary" className="w-full h-12 rounded-xl border border-primary/10 flex items-center gap-2 font-bold">
-                 <Plus className="h-5 w-5" />
-                 Add Member to {activeGroup.name}
-               </Button>
-            </div>
+              <div className="mt-6 space-y-6">
+                <TabsContent value="members" className="space-y-6 m-0 outline-none">
+                  <AIInsightsPanel group={activeGroup} />
+                  <MemberTracking 
+                    group={activeGroup} 
+                    onUpdateMember={updateMember} 
+                  />
+                </TabsContent>
+
+                <TabsContent value="summary" className="m-0 outline-none">
+                  <GroupSummary group={activeGroup} />
+                </TabsContent>
+
+                <TabsContent value="share" className="m-0 outline-none">
+                  <WhatsAppShare group={activeGroup} />
+                </TabsContent>
+
+                <TabsContent value="settings" className="m-0 outline-none">
+                  <GroupSettings 
+                    group={activeGroup} 
+                    onUpdateGroup={(updates) => updateGroup(activeGroup.id, updates)}
+                    onDeleteGroup={() => deleteGroup(activeGroup.id)}
+                  />
+                </TabsContent>
+              </div>
+            </Tabs>
           </div>
         )}
       </main>
