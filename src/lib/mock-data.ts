@@ -38,5 +38,28 @@ export const INITIAL_GROUPS: SusuGroup[] = [
       { id: 'm19', name: 'Nafi', position: 19, daysPaid: 3, hasCashedOut: false, joinDate: new Date().toISOString() },
       { id: 'm20', name: 'Najat', position: 20, daysPaid: 3, hasCashedOut: false, joinDate: new Date().toISOString() },
     ]
+  },
+  {
+    id: 'group-2',
+    name: 'Market Women Savings',
+    dailyContribution: 50,
+    feePerMark: 2,
+    adminFee: 200, 
+    maxMembers: 10,
+    durationInWeeks: 10,
+    paymentFrequency: 'daily',
+    contributionSchedule: 'weekdays_only',
+    daysPerCycle: 5,
+    cashOutAmount: 2400,
+    momoDetails: '0245678910 - Auntie Mary',
+    startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+    members: [
+      { id: 'm2-1', name: 'Auntie Mary', position: 1, daysPaid: 5, hasCashedOut: true, joinDate: new Date().toISOString() },
+      { id: 'm2-2', name: 'Abiba', position: 2, daysPaid: 5, hasCashedOut: false, joinDate: new Date().toISOString() },
+      { id: 'm2-3', name: 'Mawusi', position: 3, daysPaid: 2, hasCashedOut: false, joinDate: new Date().toISOString() },
+      { id: 'm2-4', name: 'Adjoa', position: 4, daysPaid: 5, hasCashedOut: false, joinDate: new Date().toISOString() },
+      { id: 'm2-5', name: 'Benedicta', position: 5, daysPaid: 4, hasCashedOut: false, joinDate: new Date().toISOString() },
+    ]
   }
 ];
