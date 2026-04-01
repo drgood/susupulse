@@ -27,7 +27,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
   const currentRecipient = group.members.find(m => m.position === (currentCycleIndex + 1));
   
   const totalCollectedSoFar = group.members.reduce((acc, m) => acc + (m.daysPaid * group.dailyContribution), 0);
-  const totalAdminProfit = currentCycleIndex * group.adminFee;
+  const totalAdminProfit = group.members.reduce((acc, m) => acc + (m.daysPaid * (group.feePerMark || 1)), 0);
   const weeklyCollectionPotential = group.dailyContribution * group.maxMembers * (group.contributionSchedule === 'all_days' ? 7 : 5);
 
   return (
@@ -64,7 +64,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
             <div className="bg-accent/5 p-3 rounded-xl border border-accent/10">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                 <TrendingUp className="h-3 w-3" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Your Cut</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">Admin Profit</span>
               </div>
               <p className="text-xl font-black text-accent leading-none">
                 GH¢ {totalAdminProfit.toLocaleString()}
@@ -91,6 +91,12 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
               </div>
               <div className="flex justify-between items-center text-sm p-2 bg-muted/30 rounded-lg">
                 <span className="text-muted-foreground font-medium flex items-center gap-2">
+                  <Landmark className="h-4 w-4" /> Admin Fee
+                </span>
+                <span className="font-bold text-accent">GH¢ {group.feePerMark} / day</span>
+              </div>
+              <div className="flex justify-between items-center text-sm p-2 bg-muted/30 rounded-lg">
+                <span className="text-muted-foreground font-medium flex items-center gap-2">
                   <Users className="h-4 w-4" /> Capacity
                 </span>
                 <span className="font-bold">{group.maxMembers} Members</span>
@@ -100,8 +106,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
             <div className="flex items-start gap-2 mt-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
               <Info className="h-4 w-4 text-primary mt-0.5" />
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Recipients rotate every <span className="font-bold text-primary">{group.daysPerCycle} active marks</span>. 
-                Weekly collection potential is <span className="font-bold text-primary">GH¢ {weeklyCollectionPotential.toLocaleString()}</span>.
+                Profit is tracked per payment mark. Current collection potential is <span className="font-bold text-primary">GH¢ {weeklyCollectionPotential.toLocaleString()}</span> per week.
               </p>
             </div>
           </div>

@@ -12,12 +12,11 @@ import { GroupSettings } from '@/components/groups/group-settings';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Bell, Search, Settings, Users, BarChart3, Share2 } from 'lucide-react';
+import { Bell, Search, Settings, Users, BarChart3, Share2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { differenceInCalendarDays, isWeekend } from 'date-fns';
-import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
@@ -59,10 +58,10 @@ export default function Dashboard() {
 
       g.members.forEach(m => {
         totalCollected += m.daysPaid * g.dailyContribution;
+        // Profit is calculated as the sum of the fee from every day paid across all members
+        adminProfit += m.daysPaid * (g.feePerMark || 1);
         if (m.daysPaid < targetMarks && !m.hasCashedOut) defaulterCount++;
       });
-      
-      adminProfit += currentCycleIndex * g.adminFee;
     });
 
     return { totalMembers, totalCollected, adminProfit, defaulterCount };

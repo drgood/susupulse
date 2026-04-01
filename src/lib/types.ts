@@ -15,7 +15,8 @@ export interface SusuGroup {
   id: string;
   name: string;
   dailyContribution: number;
-  adminFee: number; // Profit per cycle (total)
+  feePerMark: number; // Your commission per member per day
+  adminFee: number; // Total profit potential per cycle
   maxMembers: number;
   durationInWeeks: number; // Total cycles for a full rotation
   paymentFrequency: PaymentFrequency;

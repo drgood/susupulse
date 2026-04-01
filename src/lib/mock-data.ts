@@ -5,6 +5,7 @@ export const INITIAL_GROUPS: SusuGroup[] = [
     id: 'group-1',
     name: 'Susu Circle 02',
     dailyContribution: 21,
+    feePerMark: 1,
     adminFee: 140, 
     maxMembers: 20,
     durationInWeeks: 20,
