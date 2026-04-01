@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
 import { CircleSwitcher } from '@/components/dashboard/circle-switcher';
+import { GlobalSearch } from '@/components/dashboard/global-search';
+import { NotificationsPanel } from '@/components/dashboard/notifications-panel';
 import { GroupSummary } from '@/components/groups/group-summary';
 import { MemberTracking } from '@/components/members/member-tracking';
 import { AIInsightsPanel } from '@/components/ai/ai-insights-panel';
@@ -23,6 +25,8 @@ export default function Dashboard() {
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
   const [activeGroupId, setActiveGroupId] = useState<string>(INITIAL_GROUPS[0].id);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
 
   const activeGroup = useMemo(() => 
@@ -145,12 +149,24 @@ export default function Dashboard() {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white hover:bg-primary/5 transition-colors">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full h-10 w-10 border-none shadow-sm bg-white hover:bg-primary/5 transition-colors"
+              onClick={() => setIsSearchOpen(true)}
+            >
               <Search className="h-5 w-5 text-muted-foreground" />
             </Button>
-            <Button variant="outline" size="icon" className="rounded-full h-10 w-10 border-none shadow-sm bg-white relative hover:bg-primary/5 transition-colors">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full h-10 w-10 border-none shadow-sm bg-white relative hover:bg-primary/5 transition-colors"
+              onClick={() => setIsNotificationsOpen(true)}
+            >
               <Bell className="h-5 w-5 text-muted-foreground" />
-              <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-accent rounded-full border-2 border-white"></span>
+              {globalStats.defaulterCount > 0 && (
+                <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-amber-500 rounded-full border-2 border-white animate-pulse"></span>
+              )}
             </Button>
           </div>
         </div>
@@ -233,6 +249,26 @@ export default function Dashboard() {
           />
         </DialogContent>
       </Dialog>
+
+      <GlobalSearch 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+        groups={groups}
+        onSelectMember={(groupId) => {
+          setActiveGroupId(groupId);
+          setIsSearchOpen(false);
+        }}
+      />
+
+      <NotificationsPanel 
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        groups={groups}
+        onSelectGroup={(id) => {
+          setActiveGroupId(id);
+          setIsNotificationsOpen(false);
+        }}
+      />
 
       <Toaster />
     </div>
