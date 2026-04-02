@@ -3,7 +3,7 @@
 
 import { SusuGroup } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Plus, Users, CheckCircle2, AlertCircle, TrendingUp, User, Lock } from 'lucide-react';
+import { ChevronDown, Plus, Users, CheckCircle2, AlertCircle, TrendingUp, User, Lock, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -72,7 +72,7 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate, onLo
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="text-xl font-black text-foreground tracking-tight leading-none">
-                {activeGroup?.name}
+                {activeGroup?.name || 'Select Circle'}
               </span>
               <ChevronDown className="h-5 w-5 text-primary group-hover:translate-y-0.5 transition-transform" />
               {activeGroup && getGroupAnalytics(activeGroup).defaulters > 0 && (
@@ -127,14 +127,6 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate, onLo
                     )}>
                       {group.name}
                     </span>
-                    <div className="flex items-center gap-1">
-                      <div className="flex items-end gap-[2px] h-3 mr-2 opacity-50">
-                        <div className="w-[2px] bg-primary rounded-full h-1/2"></div>
-                        <div className="w-[2px] bg-primary rounded-full h-full"></div>
-                        <div className="w-[2px] bg-primary rounded-full h-3/4"></div>
-                        <div className="w-[2px] bg-primary rounded-full h-1/3"></div>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 mb-2">
@@ -180,14 +172,14 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate, onLo
           </Button>
           <Button 
             variant="outline"
-            className="w-full rounded-xl h-12 font-bold gap-2 border-dashed border-primary/30 text-muted-foreground hover:text-primary transition-all"
+            className="w-full rounded-xl h-12 font-bold gap-2 border-primary/20 text-muted-foreground hover:text-primary transition-all"
             onClick={() => {
               setOpen(false);
               onLock();
             }}
           >
-            <Lock className="h-4 w-4" />
-            Lock Pulse
+            <LogOut className="h-4 w-4" />
+            Log Out & Lock
           </Button>
         </div>
       </SheetContent>

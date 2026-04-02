@@ -53,7 +53,7 @@ export default function Dashboard() {
   }, [groups, activeGroupId]);
 
   const activeGroup = useMemo(() => 
-    groups.find(g => g.id === activeGroupId) || groups[0], 
+    groups.find(g => g.id === activeGroupId) || (groups.length > 0 ? groups[0] : null), 
     [groups, activeGroupId]
   );
 
@@ -271,6 +271,7 @@ export default function Dashboard() {
                     group={activeGroup} 
                     onUpdateGroup={(updates) => updateGroup(activeGroup.id, updates)}
                     onDeleteGroup={() => deleteGroup(activeGroup.id)}
+                    onLogout={() => setIsAuthenticated(false)}
                   />
                 </TabsContent>
               </div>

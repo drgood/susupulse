@@ -1,3 +1,4 @@
+
 'use client';
 
 import { SusuGroup } from '@/lib/types';
@@ -5,17 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Save, AlertCircle } from 'lucide-react';
+import { Trash2, Save, AlertCircle, LogOut, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/db';
 
 interface GroupSettingsProps {
   group: SusuGroup;
   onUpdateGroup: (updates: Partial<SusuGroup>) => void;
   onDeleteGroup: () => void;
+  onLogout: () => void;
 }
 
-export function GroupSettings({ group, onUpdateGroup, onDeleteGroup }: GroupSettingsProps) {
+export function GroupSettings({ group, onUpdateGroup, onDeleteGroup, onLogout }: GroupSettingsProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: group.name,
@@ -31,6 +34,13 @@ export function GroupSettings({ group, onUpdateGroup, onDeleteGroup }: GroupSett
       title: "Settings Saved",
       description: "Group configuration has been updated.",
     });
+  };
+
+  const handleResetPin = async () => {
+    if (confirm('Are you sure you want to reset your Access PIN? You will be prompted to set a new one on your next login.')) {
+      await db.config.delete('app_pin');
+      onLogout();
+    }
   };
 
   return (
@@ -97,6 +107,32 @@ export function GroupSettings({ group, onUpdateGroup, onDeleteGroup }: GroupSett
           <Button onClick={handleSave} className="w-full h-12 rounded-xl font-bold gap-2 mt-4">
             <Save className="h-5 w-5" />
             Save Changes
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-none shadow-sm bg-white">
+        <CardHeader>
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            Security
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Button 
+            variant="outline" 
+            onClick={onLogout}
+            className="w-full h-12 rounded-xl font-bold gap-2 border-primary/20 text-muted-foreground hover:text-primary transition-all"
+          >
+            <LogOut className="h-4 w-4" />
+            Log Out & Lock
+          </Button>
+          <Button 
+            variant="ghost" 
+            onClick={handleResetPin}
+            className="w-full h-10 rounded-xl text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+          >
+            Reset Access PIN
           </Button>
         </CardContent>
       </Card>
