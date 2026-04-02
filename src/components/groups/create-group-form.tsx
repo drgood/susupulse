@@ -1,15 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { SusuGroup, ContributionSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -19,7 +26,13 @@ const formSchema = z.object({
   daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
   contributionSchedule: z.enum(['all_days', 'weekdays_only']),
   momoDetails: z.string().min(5, 'Required'),
-  startDate: z.string().min(1, 'Required'),
+  startDate: z.date({
+    required_error: "A start date is required.",
+  }),
+  memberNames: z.string().optional(),
+}).refine((data) => data.dailyContribution > data.feePerMark, {
+  message: "Fee cannot be higher than contribution",
+  path: ["feePerMark"],
 });
 
 interface CreateGroupFormProps {
@@ -38,25 +51,32 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       daysPerCycle: 7,
       contributionSchedule: 'all_days',
       momoDetails: '0209489849 - Sung Shmair Mumuni',
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: new Date(),
+      memberNames: '',
     },
   });
 
-  const daily = form.watch('dailyContribution');
-  const fee = form.watch('feePerMark');
-  const members = form.watch('maxMembers');
-  const daysPerCycle = form.watch('daysPerCycle');
+  const daily = form.watch('dailyContribution') || 0;
+  const fee = form.watch('feePerMark') || 0;
+  const members = form.watch('maxMembers') || 0;
+  const daysPerCycle = form.watch('daysPerCycle') || 0;
 
-  // Net amount per day = Daily contribution - admin fee
-  const netDailyPerMember = daily - fee;
-  // Cash out = Net daily * days in cycle
-  const cashOutAmount = netDailyPerMember * daysPerCycle;
-  
-  // Total profit potential per week/cycle
+  const netDailyPerMember = Math.max(0, daily - fee);
+  const cashOutAmount = netDailyPerMember * daysPerCycle * members;
   const profitPerCycle = fee * members * daysPerCycle;
-  const totalPoolPerCycle = daily * members * daysPerCycle;
+  const totalRotationDays = members * daysPerCycle;
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
+    const names = values.memberNames?.split('\n').filter(n => n.trim() !== '') || [];
+    const membersList = Array.from({ length: values.maxMembers }).map((_, i) => ({
+      id: `m-${Date.now()}-${i}`,
+      name: names[i] || `Member ${i + 1}`,
+      position: i + 1,
+      daysPaid: 0,
+      hasCashedOut: false,
+      joinDate: values.startDate.toISOString(),
+    }));
+
     const newGroup: SusuGroup = {
       id: `group-${Date.now()}`,
       name: values.name,
@@ -70,16 +90,9 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       daysPerCycle: values.daysPerCycle,
       cashOutAmount: cashOutAmount,
       momoDetails: values.momoDetails,
-      startDate: new Date(values.startDate).toISOString(),
+      startDate: values.startDate.toISOString(),
       createdAt: new Date().toISOString(),
-      members: Array.from({ length: values.maxMembers }).map((_, i) => ({
-        id: `m-${Date.now()}-${i}`,
-        name: `Member ${i + 1}`,
-        position: i + 1,
-        daysPaid: 0,
-        hasCashedOut: false,
-        joinDate: new Date().toISOString(),
-      })),
+      members: membersList,
     };
     onSubmit(newGroup);
   };
@@ -88,18 +101,19 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="px-0 pt-0">
         <CardTitle className="text-xl font-black">Configure Susu Circle</CardTitle>
+        <p className="text-xs text-muted-foreground uppercase font-bold tracking-widest mt-1">Initialize Rotation Parameters</p>
       </CardHeader>
-      <CardContent className="px-0">
+      <CardContent className="px-0 pb-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Group Name</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Circle Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Daily Circle 01" {...field} />
+                    <Input placeholder="e.g. Daily Savings 01" className="rounded-xl h-12" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,11 +126,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="dailyContribution"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Daily (GH¢)</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Daily GH¢</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Wallet className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" className="pl-9" {...field} />
+                        <Wallet className="absolute left-3 top-3.5 h-5 w-5 text-primary" />
+                        <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -128,11 +142,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="feePerMark"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fee per Day (GH¢)</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Admin Fee / Day</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Landmark className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" className="pl-9" {...field} />
+                        <Landmark className="absolute left-3 top-3.5 h-5 w-5 text-accent" />
+                        <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -147,11 +161,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="maxMembers"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Total Members</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Total Members</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" className="pl-9" {...field} />
+                        <Users className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -163,11 +177,11 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="daysPerCycle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Days/Payout</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Marks per Payout</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Settings2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" className="pl-9" {...field} />
+                        <Settings2 className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -178,22 +192,22 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
 
             <FormField
               control={form.control}
-              name="contributionSchedule"
+              name="memberNames"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Active Schedule</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select schedule" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="all_days">Mon - Sun (7 days)</SelectItem>
-                      <SelectItem value="weekdays_only">Mon - Fri (5 days)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
+                  <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <ListChecks className="h-3 w-3" /> Member List (One per line)
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Safia&#10;KiNgStar&#10;Faiz..." 
+                      className="rounded-xl min-h-[100px] text-sm resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription className="text-[10px]">
+                    Positions will be assigned based on the order of names.
+                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -203,24 +217,64 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 control={form.control}
                 name="startDate"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="date" className="pl-9" {...field} />
-                      </div>
-                    </FormControl>
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Start Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "h-12 rounded-xl pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>Cash Out Amount</FormLabel>
-                <div className="h-10 px-3 flex items-center bg-muted rounded-md text-sm font-bold border border-input">
-                  GH¢ {cashOutAmount.toLocaleString()}
-                </div>
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="contributionSchedule"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Schedule</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-12 rounded-xl">
+                          <SelectValue placeholder="Select schedule" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all_days">7 Days/Week</SelectItem>
+                        <SelectItem value="weekdays_only">Mon-Fri Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <FormField
@@ -228,34 +282,47 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
               name="momoDetails"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>MoMo Payment Details</FormLabel>
+                  <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">MoMo Payment Target</FormLabel>
                   <FormControl>
-                    <Input placeholder="Number - Name" {...field} />
+                    <Input placeholder="e.g. 0244000000 - Admin Name" className="h-12 rounded-xl" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 space-y-2">
-              <h4 className="text-xs font-black text-primary uppercase tracking-wider">Projected Revenue</h4>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total Pot/Cycle:</span>
-                <span className="font-bold">GH¢ {totalPoolPerCycle.toLocaleString()}</span>
+            <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3 shadow-inner">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Payout Intelligence</h4>
+                <Badge variant="outline" className="text-[8px] bg-white border-primary/20">{totalRotationDays} Days Total</Badge>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Admin Profit/Cycle:</span>
-                <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Cash Out (The Pot):</span>
+                  <span className="text-lg font-black text-primary">GH¢ {cashOutAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center pt-1 border-t border-primary/10">
+                  <span className="text-xs text-muted-foreground font-medium">Profit per Cycle:</span>
+                  <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground font-medium italic">Net per Member Daily:</span>
+                  <span className="text-[10px] font-bold">GH¢ {netDailyPerMember}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Net per Member:</span>
-                <span className="text-xs font-bold">GH¢ {netDailyPerMember} / day</span>
+
+              <div className="flex items-start gap-2 pt-2 border-t border-primary/10">
+                <Info className="h-3 w-3 text-primary mt-0.5" />
+                <p className="text-[9px] text-muted-foreground leading-tight italic">
+                  One full rotation across all {members} members will take approximately {Math.ceil(totalRotationDays/7)} weeks.
+                </p>
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="ghost" className="flex-1" onClick={onCancel}>Cancel</Button>
-              <Button type="submit" className="flex-1">Create Circle</Button>
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="ghost" className="flex-1 rounded-xl h-12 font-bold" onClick={onCancel}>Cancel</Button>
+              <Button type="submit" className="flex-1 rounded-xl h-12 font-black shadow-lg shadow-primary/20">Launch Circle</Button>
             </div>
           </form>
         </Form>
