@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -23,7 +22,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { calculateActiveDaysPassed } from '@/lib/utils';
 
 export default function Dashboard() {
   const groups = useLiveQuery(() => db.groups.toArray()) || [];
@@ -59,38 +58,14 @@ export default function Dashboard() {
 
   const activeGroupProgress = useMemo(() => {
     if (!activeGroup) return 0;
-    const now = new Date();
-    const start = new Date(activeGroup.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    let activeDaysPassed = 0;
-    if (activeGroup.contributionSchedule === 'all_days') {
-      activeDaysPassed = totalDays;
-    } else {
-      for (let i = 0; i <= totalDays; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        if (!isWeekend(d)) activeDaysPassed++;
-      }
-    }
+    const activeDaysPassed = calculateActiveDaysPassed(activeGroup);
     const daysInCurrentCycle = activeDaysPassed % activeGroup.daysPerCycle;
     return (daysInCurrentCycle / activeGroup.daysPerCycle) * 100;
   }, [activeGroup]);
 
   const activeGroupCycleDay = useMemo(() => {
     if (!activeGroup) return 0;
-    const now = new Date();
-    const start = new Date(activeGroup.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    let activeDaysPassed = 0;
-    if (activeGroup.contributionSchedule === 'all_days') {
-      activeDaysPassed = totalDays;
-    } else {
-      for (let i = 0; i <= totalDays; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        if (!isWeekend(d)) activeDaysPassed++;
-      }
-    }
+    const activeDaysPassed = calculateActiveDaysPassed(activeGroup);
     return (activeDaysPassed % activeGroup.daysPerCycle) + 1;
   }, [activeGroup]);
 
@@ -100,24 +75,9 @@ export default function Dashboard() {
     let adminProfit = 0;
     let defaulterCount = 0;
 
-    const now = new Date();
-
     groups.forEach(g => {
       totalMembers += g.members.length;
-      
-      const start = new Date(g.startDate);
-      const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-      let activeDaysPassed = 0;
-      if (g.contributionSchedule === 'all_days') {
-        activeDaysPassed = totalDays;
-      } else {
-        for (let i = 0; i <= totalDays; i++) {
-          const d = new Date(start);
-          d.setDate(d.getDate() + i);
-          if (!isWeekend(d)) activeDaysPassed++;
-        }
-      }
-
+      const activeDaysPassed = calculateActiveDaysPassed(g);
       const currentCycleIndex = Math.floor(activeDaysPassed / g.daysPerCycle);
       const targetMarks = (currentCycleIndex + 1) * g.daysPerCycle;
 

@@ -6,32 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Share2, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { calculateActiveDaysPassed, getWeeklyFrequency } from '@/lib/utils';
 
 export function WhatsAppShare({ group }: { group: SusuGroup }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const calculateActiveDaysPassed = () => {
-    const now = new Date();
-    const start = new Date(group.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    if (group.contributionSchedule === 'all_days') return totalDays;
-    let activeDays = 0;
-    for (let i = 0; i <= totalDays; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      if (!isWeekend(d)) activeDays++;
-    }
-    return activeDays;
-  };
-
-  const activeDaysPassed = calculateActiveDaysPassed();
+  const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentRecipientPosition = Math.floor(activeDaysPassed / group.daysPerCycle) + 1;
 
   const generateMessage = () => {
-    const schedule = group.contributionSchedule === 'all_days' ? 'Mon-Sun' : 'Mon-Fri';
-    const weeklyRate = group.dailyContribution * (group.contributionSchedule === 'all_days' ? 7 : 5);
+    const weeklyFreq = getWeeklyFrequency(group);
+    const schedule = group.contributionSchedule === 'all_days' 
+      ? 'Mon-Sun' 
+      : group.contributionSchedule === 'weekdays_only' 
+      ? 'Mon-Fri' 
+      : `${weeklyFreq} days/week`;
+
+    const weeklyRate = group.dailyContribution * weeklyFreq;
     const momoInfo = group.momoNumber ? `${group.momoNumber} (${group.momoName})` : 'Contact Admin';
     
     const header = `GH¢${group.dailyContribution} daily (${schedule}) for ${group.maxMembers} people. Cash out GH¢${group.cashOutAmount} 💰\n` +
@@ -51,7 +43,7 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
       })
       .join('\n');
       
-    const footer = `\n\nYou have the option to make payments either daily (GH¢${group.dailyContribution}) or weekly (GH¢${weeklyRate}), with the weekly payment due by Sunday at 5pm.\n\n` +
+    const footer = `\n\nYou have the option to make payments either daily (GH¢${group.dailyContribution}) or weekly (GH¢${weeklyRate}), with the weekly payment due by the end of the week.\n\n` +
       `Payment via Momo only. Send screenshot or Use your name as Reference for confirmation\n\n` +
       `Cash out 💰 | Not paid ❌ | Paid ✅`;
     

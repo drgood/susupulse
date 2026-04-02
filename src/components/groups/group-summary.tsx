@@ -1,4 +1,3 @@
-
 'use client';
 
 import { SusuGroup } from '@/lib/types';
@@ -6,30 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Award, Calendar, Wallet, Info, TrendingUp, Users, Landmark } from 'lucide-react';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { calculateActiveDaysPassed, getWeeklyFrequency } from '@/lib/utils';
 
 export function GroupSummary({ group }: { group: SusuGroup }) {
-  const calculateActiveDaysPassed = () => {
-    const now = new Date();
-    const start = new Date(group.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    if (group.contributionSchedule === 'all_days') return totalDays;
-    let activeDays = 0;
-    for (let i = 0; i <= totalDays; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      if (!isWeekend(d)) activeDays++;
-    }
-    return activeDays;
-  };
-
-  const activeDaysPassed = calculateActiveDaysPassed();
+  const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentCycleIndex = Math.floor(activeDaysPassed / group.daysPerCycle);
   const currentRecipient = group.members.find(m => m.position === (currentCycleIndex + 1));
   
   const totalCollectedSoFar = group.members.reduce((acc, m) => acc + (m.daysPaid * group.dailyContribution), 0);
   const totalAdminProfit = group.members.reduce((acc, m) => acc + (m.daysPaid * (group.feePerMark || 1)), 0);
-  const weeklyCollectionPotential = group.dailyContribution * group.maxMembers * (group.contributionSchedule === 'all_days' ? 7 : 5);
+  
+  const weeklyFrequency = getWeeklyFrequency(group);
+  const weeklyCollectionPotential = group.dailyContribution * group.maxMembers * weeklyFrequency;
+
+  const scheduleLabel = group.contributionSchedule === 'all_days' 
+    ? 'Mon-Sun' 
+    : group.contributionSchedule === 'weekdays_only' 
+    ? 'Mon-Fri' 
+    : `${weeklyFrequency} days/week`;
 
   return (
     <div className="space-y-6">
@@ -82,7 +75,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
                 <span className="text-muted-foreground font-medium flex items-center gap-2">
                   <Calendar className="h-4 w-4" /> Schedule
                 </span>
-                <span className="font-bold">{group.contributionSchedule === 'all_days' ? 'Mon-Sun' : 'Mon-Fri'}</span>
+                <span className="font-bold">{scheduleLabel}</span>
               </div>
               <div className="flex justify-between items-center text-sm p-2 bg-muted/30 rounded-lg">
                 <span className="text-muted-foreground font-medium flex items-center gap-2">

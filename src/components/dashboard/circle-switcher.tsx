@@ -1,8 +1,7 @@
-
 'use client';
 
 import { SusuGroup } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, calculateActiveDaysPassed } from '@/lib/utils';
 import { ChevronDown, Plus, Users, CheckCircle2, AlertCircle, TrendingUp, User, Lock, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +12,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
 import { useState, useMemo } from 'react';
 
 interface CircleSwitcherProps {
@@ -29,21 +27,7 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate, onLo
   const activeGroup = groups.find(g => g.id === activeGroupId);
 
   const getGroupAnalytics = (group: SusuGroup) => {
-    const now = new Date();
-    const start = new Date(group.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    let activeDaysPassed = 0;
-    
-    if (group.contributionSchedule === 'all_days') {
-      activeDaysPassed = totalDays;
-    } else {
-      for (let i = 0; i <= totalDays; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        if (!isWeekend(d)) activeDaysPassed++;
-      }
-    }
-
+    const activeDaysPassed = calculateActiveDaysPassed(group);
     const currentCycleIndex = Math.floor(activeDaysPassed / group.daysPerCycle);
     const targetMarks = (currentCycleIndex + 1) * group.daysPerCycle;
 

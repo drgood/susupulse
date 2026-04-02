@@ -3,7 +3,7 @@
 import { SusuGroup } from '@/lib/types';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AlertCircle, CheckCircle2, Wallet, Calendar, User } from 'lucide-react';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { calculateActiveDaysPassed } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -16,21 +16,7 @@ interface NotificationsPanelProps {
 
 export function NotificationsPanel({ isOpen, onClose, groups, onSelectGroup }: NotificationsPanelProps) {
   const alerts = groups.flatMap(group => {
-    const now = new Date();
-    const start = new Date(group.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    let activeDaysPassed = 0;
-    
-    if (group.contributionSchedule === 'all_days') {
-      activeDaysPassed = totalDays;
-    } else {
-      for (let i = 0; i <= totalDays; i++) {
-        const d = new Date(start);
-        d.setDate(d.getDate() + i);
-        if (!isWeekend(d)) activeDaysPassed++;
-      }
-    }
-
+    const activeDaysPassed = calculateActiveDaysPassed(group);
     const currentCycleIndex = Math.floor(activeDaysPassed / group.daysPerCycle);
     const targetMarks = (currentCycleIndex + 1) * group.daysPerCycle;
     const currentRecipient = group.members.find(m => m.position === (currentCycleIndex + 1));

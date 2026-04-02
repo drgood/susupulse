@@ -12,11 +12,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SusuGroup, ContributionSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info, Loader2, Phone } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info, Loader2, Phone, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+
+const DAYS_OF_WEEK = [
+  { label: 'Sun', value: 0 },
+  { label: 'Mon', value: 1 },
+  { label: 'Tue', value: 2 },
+  { label: 'Wed', value: 3 },
+  { label: 'Thu', value: 4 },
+  { label: 'Fri', value: 5 },
+  { label: 'Sat', value: 6 },
+];
 
 const formSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -24,7 +35,8 @@ const formSchema = z.object({
   feePerMark: z.coerce.number().min(0, 'Required'),
   maxMembers: z.coerce.number().min(2, 'At least 2 members'),
   daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
-  contributionSchedule: z.enum(['all_days', 'weekdays_only']),
+  contributionSchedule: z.enum(['all_days', 'weekdays_only', 'custom']),
+  activeDays: z.array(z.number()).default([1, 2, 3, 4, 5]),
   momoNumber: z.string().min(10, 'Enter valid number'),
   momoName: z.string().min(2, 'Enter account name'),
   startDate: z.date({
@@ -53,6 +65,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       maxMembers: 20,
       daysPerCycle: 7,
       contributionSchedule: 'all_days',
+      activeDays: [1, 2, 3, 4, 5],
       momoNumber: '',
       momoName: '',
       startDate: new Date(),
@@ -68,11 +81,17 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
   const fee = form.watch('feePerMark') || 0;
   const membersCount = form.watch('maxMembers') || 0;
   const daysPerCycle = form.watch('daysPerCycle') || 0;
+  const scheduleType = form.watch('contributionSchedule');
+  const activeDays = form.watch('activeDays');
 
   const netDailyPerMember = Math.max(0, daily - fee);
   const cashOutAmount = netDailyPerMember * daysPerCycle * membersCount;
   const profitPerCycle = fee * membersCount * daysPerCycle;
-  const totalRotationDays = membersCount * daysPerCycle;
+  const totalRotationMarks = membersCount * daysPerCycle;
+
+  // Calculate duration based on schedule density
+  const activeDaysPerWeek = scheduleType === 'all_days' ? 7 : scheduleType === 'weekdays_only' ? 5 : activeDays.length || 1;
+  const totalWeeks = Math.ceil(totalRotationMarks / activeDaysPerWeek);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const names = values.memberNames?.split('\n').filter(n => n.trim() !== '') || [];
@@ -85,15 +104,22 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       joinDate: values.startDate.toISOString(),
     }));
 
+    const finalActiveDays = values.contributionSchedule === 'all_days' 
+      ? [0, 1, 2, 3, 4, 5, 6] 
+      : values.contributionSchedule === 'weekdays_only' 
+      ? [1, 2, 3, 4, 5] 
+      : values.activeDays;
+
     const newGroup: SusuGroup = {
       id: `group-${Date.now()}`,
       name: values.name,
       dailyContribution: values.dailyContribution,
       feePerMark: values.feePerMark,
       adminFee: profitPerCycle,
-      durationInWeeks: Math.ceil(totalRotationDays / 7),
+      durationInWeeks: totalWeeks,
       paymentFrequency: 'daily',
       contributionSchedule: values.contributionSchedule as ContributionSchedule,
+      activeDays: finalActiveDays,
       daysPerCycle: values.daysPerCycle,
       cashOutAmount: cashOutAmount,
       momoNumber: values.momoNumber,
@@ -275,7 +301,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 name="contributionSchedule"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Schedule</FormLabel>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Base Schedule</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-12 rounded-xl">
@@ -285,6 +311,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                       <SelectContent>
                         <SelectItem value="all_days">7 Days/Week</SelectItem>
                         <SelectItem value="weekdays_only">Mon-Fri Only</SelectItem>
+                        <SelectItem value="custom">Custom Choice</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -292,6 +319,57 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                 )}
               />
             </div>
+
+            {scheduleType === 'custom' && (
+              <FormField
+                control={form.control}
+                name="activeDays"
+                render={() => (
+                  <FormItem className="bg-muted/30 p-4 rounded-xl space-y-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CalendarDays className="h-3 w-3 text-primary" />
+                      <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Select Active Days</FormLabel>
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {DAYS_OF_WEEK.map((day) => (
+                        <FormField
+                          key={day.value}
+                          control={form.control}
+                          name="activeDays"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={day.value}
+                                className="flex flex-col items-center gap-1.5 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(day.value)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, day.value])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== day.value
+                                            )
+                                          )
+                                    }}
+                                    className="h-5 w-5 rounded-md"
+                                  />
+                                </FormControl>
+                                <FormLabel className="text-[8px] font-bold uppercase">
+                                  {day.label}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -328,7 +406,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3 shadow-inner">
               <div className="flex items-center justify-between">
                 <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Payout Intelligence</h4>
-                <Badge variant="outline" className="text-[8px] bg-white border-primary/20">{totalRotationDays} Days Total Rotation</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-primary/20">{totalRotationMarks} Marks Total Rotation</Badge>
               </div>
               
               <div className="space-y-2">
@@ -340,16 +418,12 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                   <span className="text-xs text-muted-foreground font-medium">Target Cycle Profit:</span>
                   <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-muted-foreground font-medium italic">Net per Member Daily:</span>
-                  <span className="text-[10px] font-bold">GH¢ {netDailyPerMember}</span>
-                </div>
               </div>
 
               <div className="flex items-start gap-2 pt-2 border-t border-primary/10">
                 <Info className="h-3 w-3 text-primary mt-0.5" />
                 <p className="text-[9px] text-muted-foreground leading-tight italic">
-                  A full rotation for all {membersCount} members will take approx. {Math.ceil(totalRotationDays/7)} weeks.
+                  A full rotation for all {membersCount} members will take approx. {totalWeeks} weeks based on {activeDaysPerWeek} contribution days per week.
                 </p>
               </div>
             </div>

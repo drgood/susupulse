@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Plus, Minus, Clock, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { cn, calculateActiveDaysPassed } from '@/lib/utils';
 
 interface MemberTrackingProps {
   group: SusuGroup;
@@ -16,23 +15,7 @@ interface MemberTrackingProps {
 export function MemberTracking({ group, onUpdateMember }: MemberTrackingProps) {
   const { toast } = useToast();
 
-  const calculateActiveDaysPassed = () => {
-    const now = new Date();
-    const start = new Date(group.startDate);
-    const totalDays = Math.max(0, differenceInCalendarDays(now, start));
-    
-    if (group.contributionSchedule === 'all_days') return totalDays;
-    
-    let activeDays = 0;
-    for (let i = 0; i <= totalDays; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      if (!isWeekend(d)) activeDays++;
-    }
-    return activeDays;
-  };
-
-  const activeDaysPassed = calculateActiveDaysPassed();
+  const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentRecipientPosition = Math.floor(activeDaysPassed / group.daysPerCycle) + 1;
   const targetMarksForCycle = currentRecipientPosition * group.daysPerCycle;
 

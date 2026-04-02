@@ -1,5 +1,5 @@
 export type PaymentFrequency = 'daily' | 'weekly';
-export type ContributionSchedule = 'all_days' | 'weekdays_only';
+export type ContributionSchedule = 'all_days' | 'weekdays_only' | 'custom';
 
 export interface Member {
   id: string;
@@ -21,6 +21,7 @@ export interface SusuGroup {
   durationInWeeks: number; // Total cycles for a full rotation
   paymentFrequency: PaymentFrequency;
   contributionSchedule: ContributionSchedule;
+  activeDays?: number[]; // [0, 1, 2, 3, 4, 5, 6] where 0 is Sunday
   daysPerCycle: number; // How many marks (contribution days) per payout
   cashOutAmount: number;
   momoNumber: string;
