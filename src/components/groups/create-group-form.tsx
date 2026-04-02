@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -62,6 +63,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
   const daysPerCycle = form.watch('daysPerCycle') || 0;
 
   const netDailyPerMember = Math.max(0, daily - fee);
+  // Correct Cash Out Logic: (Net Daily Contribution) * (Days in one payout cycle) * (Total Members)
   const cashOutAmount = netDailyPerMember * daysPerCycle * members;
   const profitPerCycle = fee * members * daysPerCycle;
   const totalRotationDays = members * daysPerCycle;
@@ -82,9 +84,8 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       name: values.name,
       dailyContribution: values.dailyContribution,
       feePerMark: values.feePerMark,
-      maxMembers: values.maxMembers,
       adminFee: profitPerCycle,
-      durationInWeeks: values.maxMembers,
+      durationInWeeks: Math.ceil(totalRotationDays / 7),
       paymentFrequency: 'daily',
       contributionSchedule: values.contributionSchedule as ContributionSchedule,
       daysPerCycle: values.daysPerCycle,
