@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { SusuGroup, ContributionSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info, Loader2 } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info, Loader2, Phone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,7 +25,8 @@ const formSchema = z.object({
   maxMembers: z.coerce.number().min(2, 'At least 2 members'),
   daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
   contributionSchedule: z.enum(['all_days', 'weekdays_only']),
-  momoDetails: z.string().min(5, 'Required'),
+  momoNumber: z.string().min(10, 'Enter valid number'),
+  momoName: z.string().min(2, 'Enter account name'),
   startDate: z.date({
     required_error: "A start date is required.",
   }),
@@ -52,7 +53,8 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       maxMembers: 20,
       daysPerCycle: 7,
       contributionSchedule: 'all_days',
-      momoDetails: '0209489849 - Sung Shmair Mumuni',
+      momoNumber: '',
+      momoName: '',
       startDate: new Date(),
       memberNames: '',
     },
@@ -64,13 +66,13 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
 
   const daily = form.watch('dailyContribution') || 0;
   const fee = form.watch('feePerMark') || 0;
-  const members = form.watch('maxMembers') || 0;
+  const membersCount = form.watch('maxMembers') || 0;
   const daysPerCycle = form.watch('daysPerCycle') || 0;
 
   const netDailyPerMember = Math.max(0, daily - fee);
-  const cashOutAmount = netDailyPerMember * daysPerCycle * members;
-  const profitPerCycle = fee * members * daysPerCycle;
-  const totalRotationDays = members * daysPerCycle;
+  const cashOutAmount = netDailyPerMember * daysPerCycle * membersCount;
+  const profitPerCycle = fee * membersCount * daysPerCycle;
+  const totalRotationDays = membersCount * daysPerCycle;
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const names = values.memberNames?.split('\n').filter(n => n.trim() !== '') || [];
@@ -94,7 +96,8 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       contributionSchedule: values.contributionSchedule as ContributionSchedule,
       daysPerCycle: values.daysPerCycle,
       cashOutAmount: cashOutAmount,
-      momoDetails: values.momoDetails,
+      momoNumber: values.momoNumber,
+      momoName: values.momoName,
       startDate: values.startDate.toISOString(),
       createdAt: new Date().toISOString(),
       members: membersList,
@@ -219,7 +222,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                     />
                   </FormControl>
                   <FormDescription className="text-[10px]">
-                    Positions will be assigned based on the order of names.
+                    Payout sequence is determined by the order of names provided.
                   </FormDescription>
                 </FormItem>
               )}
@@ -290,33 +293,51 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="momoDetails"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">MoMo Payment Target</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g. 0244000000 - Admin Name" className="h-12 rounded-xl" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="momoNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">MoMo Number</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="0244..." className="pl-9 h-12 rounded-xl" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="momoName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Account Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Recipient Name" className="h-12 rounded-xl" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 space-y-3 shadow-inner">
               <div className="flex items-center justify-between">
                 <h4 className="text-[10px] font-black text-primary uppercase tracking-widest">Payout Intelligence</h4>
-                <Badge variant="outline" className="text-[8px] bg-white border-primary/20">{totalRotationDays} Days Total</Badge>
+                <Badge variant="outline" className="text-[8px] bg-white border-primary/20">{totalRotationDays} Days Total Rotation</Badge>
               </div>
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground font-medium">Cash Out (The Pot):</span>
+                  <span className="text-xs text-muted-foreground font-medium">Cash Out Pot (The Hand):</span>
                   <span className="text-lg font-black text-primary">GH¢ {cashOutAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-primary/10">
-                  <span className="text-xs text-muted-foreground font-medium">Profit per Cycle:</span>
+                  <span className="text-xs text-muted-foreground font-medium">Target Cycle Profit:</span>
                   <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -328,7 +349,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
               <div className="flex items-start gap-2 pt-2 border-t border-primary/10">
                 <Info className="h-3 w-3 text-primary mt-0.5" />
                 <p className="text-[9px] text-muted-foreground leading-tight italic">
-                  One full rotation across all {members} members will take approximately {Math.ceil(totalRotationDays/7)} weeks.
+                  A full rotation for all {membersCount} members will take approx. {Math.ceil(totalRotationDays/7)} weeks.
                 </p>
               </div>
             </div>

@@ -13,7 +13,8 @@ export const INITIAL_GROUPS: SusuGroup[] = [
     contributionSchedule: 'all_days',
     daysPerCycle: 7,
     cashOutAmount: 2800,
-    momoDetails: '0209489849 - Sung Shmair Mumuni',
+    momoNumber: '0209489849',
+    momoName: 'Sung Shmair Mumuni',
     startDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), 
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     members: [
@@ -51,7 +52,8 @@ export const INITIAL_GROUPS: SusuGroup[] = [
     contributionSchedule: 'weekdays_only',
     daysPerCycle: 5,
     cashOutAmount: 2400,
-    momoDetails: '0245678910 - Auntie Mary',
+    momoNumber: '0245678910',
+    momoName: 'Auntie Mary',
     startDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
     members: [

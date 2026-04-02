@@ -1,4 +1,3 @@
-
 'use client';
 
 import { SusuGroup } from '@/lib/types';
@@ -24,7 +23,8 @@ export function GroupSettings({ group, onUpdateGroup, onDeleteGroup, onLogout }:
     name: group.name,
     dailyContribution: group.dailyContribution,
     cashOutAmount: group.cashOutAmount,
-    momoDetails: group.momoDetails,
+    momoNumber: group.momoNumber || '',
+    momoName: group.momoName || '',
     daysPerCycle: group.daysPerCycle,
   });
 
@@ -84,7 +84,7 @@ export function GroupSettings({ group, onUpdateGroup, onDeleteGroup, onLogout }:
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="payout" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cash Out (GH¢)</Label>
+            <Label htmlFor="payout" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cash Out Pot (GH¢)</Label>
             <Input 
               id="payout" 
               type="number" 
@@ -94,14 +94,25 @@ export function GroupSettings({ group, onUpdateGroup, onDeleteGroup, onLogout }:
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="momo" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Payment Details</Label>
-            <Input 
-              id="momo" 
-              value={formData.momoDetails} 
-              onChange={(e) => setFormData({ ...formData, momoDetails: e.target.value })}
-              className="rounded-xl"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="momoNum" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">MoMo Number</Label>
+              <Input 
+                id="momoNum" 
+                value={formData.momoNumber} 
+                onChange={(e) => setFormData({ ...formData, momoNumber: e.target.value })}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="momoName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Account Name</Label>
+              <Input 
+                id="momoName" 
+                value={formData.momoName} 
+                onChange={(e) => setFormData({ ...formData, momoName: e.target.value })}
+                className="rounded-xl"
+              />
+            </div>
           </div>
 
           <Button onClick={handleSave} className="w-full h-12 rounded-xl font-bold gap-2 mt-4">

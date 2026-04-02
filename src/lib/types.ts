@@ -16,14 +16,15 @@ export interface SusuGroup {
   name: string;
   dailyContribution: number;
   feePerMark: number; // Your commission per member per day
-  adminFee: number; // Total profit potential per cycle
+  adminFee: number; // Total target profit potential per cycle
   maxMembers: number;
   durationInWeeks: number; // Total cycles for a full rotation
   paymentFrequency: PaymentFrequency;
   contributionSchedule: ContributionSchedule;
   daysPerCycle: number; // How many marks (contribution days) per payout
   cashOutAmount: number;
-  momoDetails: string;
+  momoNumber: string;
+  momoName: string;
   members: Member[];
   startDate: string; // The date the first cycle began
   createdAt: string;

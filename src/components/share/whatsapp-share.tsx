@@ -32,14 +32,14 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
   const generateMessage = () => {
     const schedule = group.contributionSchedule === 'all_days' ? 'Mon-Sun' : 'Mon-Fri';
     const weeklyRate = group.dailyContribution * (group.contributionSchedule === 'all_days' ? 7 : 5);
+    const momoInfo = group.momoNumber ? `${group.momoNumber} (${group.momoName})` : 'Contact Admin';
     
     const header = `GH¢${group.dailyContribution} daily (${schedule}) for ${group.maxMembers} people. Cash out GH¢${group.cashOutAmount} 💰\n` +
-      `Momo: ${group.momoDetails}\n\n`;
+      `Momo: ${momoInfo}\n\n`;
     
     const memberList = group.members
       .sort((a, b) => a.position - b.position)
       .map(m => {
-        // Calculate marks for the CURRENT cycle
         const startOfCurrentCycle = (currentRecipientPosition - 1) * group.daysPerCycle;
         const paidInCurrentCycle = Math.max(0, m.daysPaid - startOfCurrentCycle);
         const marksCount = Math.min(group.daysPerCycle, paidInCurrentCycle);
@@ -79,7 +79,7 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
           Copy this formatted message to share the circle's current status in your WhatsApp group.
         </p>
         
-        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-[10px] whitespace-pre-wrap leading-relaxed max-h-[400px] overflow-y-auto">
+        <div className="bg-slate-50 p-4 rounded-xl border-2 border-slate-200 font-mono text-[10px] whitespace-pre-wrap leading-relaxed max-h-[400px] overflow-y-auto">
           {generateMessage()}
         </div>
 
