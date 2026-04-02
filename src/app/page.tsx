@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
 import { CircleSwitcher } from '@/components/dashboard/circle-switcher';
 import { GlobalSearch } from '@/components/dashboard/global-search';
@@ -14,20 +14,32 @@ import { GroupSettings } from '@/components/groups/group-settings';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Bell, Search, Settings, Users, BarChart3, Share2, Activity } from 'lucide-react';
+import { Bell, Search, Settings, Users, BarChart3, Share2, Activity, Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { differenceInCalendarDays, isWeekend } from 'date-fns';
+import { useUser, useAuth, initiateAnonymousSignIn } from '@/firebase';
 
 export default function Dashboard() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  
+  // For now, we keep the mock state to allow immediate interaction,
+  // but we sign the user in so we can transition to Firestore writes.
   const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
   const [activeGroupId, setActiveGroupId] = useState<string>(INITIAL_GROUPS[0].id);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
+
+  useEffect(() => {
+    if (!isUserLoading && !user && auth) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
 
   const activeGroup = useMemo(() => 
     groups.find(g => g.id === activeGroupId) || groups[0], 
@@ -107,6 +119,17 @@ export default function Dashboard() {
 
     return { totalMembers, totalCollected, adminProfit, defaulterCount };
   }, [groups]);
+
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 text-primary animate-spin" />
+          <p className="text-xs font-black uppercase tracking-widest text-primary italic">SusuPulse Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   const updateMember = (memberId: string, updates: Partial<Member>) => {
     setGroups(prev => prev.map(g => {
