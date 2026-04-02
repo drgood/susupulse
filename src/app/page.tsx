@@ -1,6 +1,9 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/db';
 import { StatsGrid } from '@/components/dashboard/stats-grid';
 import { CircleSwitcher } from '@/components/dashboard/circle-switcher';
 import { GlobalSearch } from '@/components/dashboard/global-search';
@@ -20,26 +23,32 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { differenceInCalendarDays, isWeekend } from 'date-fns';
-import { useUser, useAuth, initiateAnonymousSignIn } from '@/firebase';
 
 export default function Dashboard() {
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
-  
-  // For now, we keep the mock state to allow immediate interaction,
-  // but we sign the user in so we can transition to Firestore writes.
-  const [groups, setGroups] = useState<SusuGroup[]>(INITIAL_GROUPS);
-  const [activeGroupId, setActiveGroupId] = useState<string>(INITIAL_GROUPS[0].id);
+  const groups = useLiveQuery(() => db.groups.toArray()) || [];
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
 
+  // Seed data if database is empty
   useEffect(() => {
-    if (!isUserLoading && !user && auth) {
-      initiateAnonymousSignIn(auth);
+    const seedData = async () => {
+      const count = await db.groups.count();
+      if (count === 0) {
+        await db.groups.bulkAdd(INITIAL_GROUPS);
+      }
+    };
+    seedData();
+  }, []);
+
+  // Set default active group once groups are loaded
+  useEffect(() => {
+    if (groups.length > 0 && !activeGroupId) {
+      setActiveGroupId(groups[0].id);
     }
-  }, [user, isUserLoading, auth]);
+  }, [groups, activeGroupId]);
 
   const activeGroup = useMemo(() => 
     groups.find(g => g.id === activeGroupId) || groups[0], 
@@ -120,7 +129,34 @@ export default function Dashboard() {
     return { totalMembers, totalCollected, adminProfit, defaulterCount };
   }, [groups]);
 
-  if (isUserLoading) {
+  const updateMember = async (memberId: string, updates: Partial<Member>) => {
+    if (!activeGroupId || !activeGroup) return;
+    const updatedMembers = activeGroup.members.map(m => 
+      m.id === memberId ? { ...m, ...updates } : m
+    );
+    await db.groups.update(activeGroupId, { members: updatedMembers });
+  };
+
+  const updateGroup = async (groupId: string, updates: Partial<SusuGroup>) => {
+    await db.groups.update(groupId, updates);
+  };
+
+  const deleteGroup = async (groupId: string) => {
+    if (groups.length <= 1) return;
+    await db.groups.delete(groupId);
+    const remaining = groups.filter(g => g.id !== groupId);
+    if (remaining.length > 0) {
+      setActiveGroupId(remaining[0].id);
+    }
+  };
+
+  const handleCreateGroup = async (newGroup: SusuGroup) => {
+    await db.groups.add(newGroup);
+    setActiveGroupId(newGroup.id);
+    setIsCreateOpen(false);
+  };
+
+  if (!activeGroupId && groups.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -131,33 +167,6 @@ export default function Dashboard() {
     );
   }
 
-  const updateMember = (memberId: string, updates: Partial<Member>) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id !== activeGroupId) return g;
-      return {
-        ...g,
-        members: g.members.map(m => m.id === memberId ? { ...m, ...updates } : m)
-      };
-    }));
-  };
-
-  const updateGroup = (groupId: string, updates: Partial<SusuGroup>) => {
-    setGroups(prev => prev.map(g => g.id === groupId ? { ...g, ...updates } : g));
-  };
-
-  const deleteGroup = (groupId: string) => {
-    if (groups.length <= 1) return;
-    const newGroups = groups.filter(g => g.id !== groupId);
-    setGroups(newGroups);
-    setActiveGroupId(newGroups[0].id);
-  };
-
-  const handleCreateGroup = (newGroup: SusuGroup) => {
-    setGroups([...groups, newGroup]);
-    setActiveGroupId(newGroup.id);
-    setIsCreateOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-background font-body pb-20">
       <header className="px-5 pt-8 pb-6 bg-background/80 backdrop-blur-md sticky top-0 z-40 border-b border-primary/5">
@@ -166,7 +175,7 @@ export default function Dashboard() {
             <h1 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic mb-1">SusuPulse</h1>
             <CircleSwitcher 
               groups={groups} 
-              activeGroupId={activeGroupId} 
+              activeGroupId={activeGroupId || ''} 
               onSelect={setActiveGroupId} 
               onCreate={() => setIsCreateOpen(true)}
             />
