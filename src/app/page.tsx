@@ -14,6 +14,7 @@ import { AIInsightsPanel } from '@/components/ai/ai-insights-panel';
 import { CreateGroupForm } from '@/components/groups/create-group-form';
 import { WhatsAppShare } from '@/components/share/whatsapp-share';
 import { GroupSettings } from '@/components/groups/group-settings';
+import { PinLogin } from '@/components/auth/pin-login';
 import { INITIAL_GROUPS } from '@/lib/mock-data';
 import { SusuGroup, GlobalStats, Member } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Seed data if database is empty
   useEffect(() => {
@@ -156,6 +158,10 @@ export default function Dashboard() {
     setIsCreateOpen(false);
   };
 
+  if (!isAuthenticated) {
+    return <PinLogin onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
+
   if (!activeGroupId && groups.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -178,6 +184,7 @@ export default function Dashboard() {
               activeGroupId={activeGroupId || ''} 
               onSelect={setActiveGroupId} 
               onCreate={() => setIsCreateOpen(true)}
+              onLock={() => setIsAuthenticated(false)}
             />
           </div>
           <div className="flex gap-2">

@@ -10,9 +10,14 @@ export const db = new Dexie('SusuPulseDB') as Dexie & {
     SusuGroup,
     'id'
   >;
+  config: EntityTable<
+    { key: string; value: any },
+    'key'
+  >;
 };
 
 // Schema declaration:
-db.version(1).stores({
-  groups: 'id, name, createdAt' // primary key "id", indexes for name and createdAt
+db.version(2).stores({
+  groups: 'id, name, createdAt',
+  config: 'key'
 });

@@ -1,8 +1,9 @@
+
 'use client';
 
 import { SusuGroup } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ChevronDown, Plus, Users, CheckCircle2, AlertCircle, TrendingUp, User } from 'lucide-react';
+import { ChevronDown, Plus, Users, CheckCircle2, AlertCircle, TrendingUp, User, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -20,9 +21,10 @@ interface CircleSwitcherProps {
   activeGroupId: string;
   onSelect: (id: string) => void;
   onCreate: () => void;
+  onLock: () => void;
 }
 
-export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate }: CircleSwitcherProps) {
+export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate, onLock }: CircleSwitcherProps) {
   const [open, setOpen] = useState(false);
   const activeGroup = groups.find(g => g.id === activeGroupId);
 
@@ -126,7 +128,6 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate }: Ci
                       {group.name}
                     </span>
                     <div className="flex items-center gap-1">
-                      {/* Simple CSS-based Sparkline */}
                       <div className="flex items-end gap-[2px] h-3 mr-2 opacity-50">
                         <div className="w-[2px] bg-primary rounded-full h-1/2"></div>
                         <div className="w-[2px] bg-primary rounded-full h-full"></div>
@@ -166,7 +167,7 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate }: Ci
           })}
         </div>
 
-        <div className="p-6 mt-auto bg-muted/10 border-t border-primary/5">
+        <div className="p-6 mt-auto bg-muted/10 border-t border-primary/5 space-y-3">
           <Button 
             className="w-full rounded-xl h-12 font-bold gap-2 shadow-lg shadow-primary/10"
             onClick={() => {
@@ -176,6 +177,17 @@ export function CircleSwitcher({ groups, activeGroupId, onSelect, onCreate }: Ci
           >
             <Plus className="h-5 w-5" />
             Create New Circle
+          </Button>
+          <Button 
+            variant="outline"
+            className="w-full rounded-xl h-12 font-bold gap-2 border-dashed border-primary/30 text-muted-foreground hover:text-primary transition-all"
+            onClick={() => {
+              setOpen(false);
+              onLock();
+            }}
+          >
+            <Lock className="h-4 w-4" />
+            Lock Pulse
           </Button>
         </div>
       </SheetContent>
