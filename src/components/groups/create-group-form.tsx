@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { SusuGroup, ContributionSchedule } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, Wallet, Settings2, Landmark, ListChecks, Info, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -42,6 +41,8 @@ interface CreateGroupFormProps {
 }
 
 export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
+  const [mounted, setMounted] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,13 +58,16 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
     },
   });
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const daily = form.watch('dailyContribution') || 0;
   const fee = form.watch('feePerMark') || 0;
   const members = form.watch('maxMembers') || 0;
   const daysPerCycle = form.watch('daysPerCycle') || 0;
 
   const netDailyPerMember = Math.max(0, daily - fee);
-  // Correct Cash Out Logic: (Net Daily Contribution) * (Days in one payout cycle) * (Total Members)
   const cashOutAmount = netDailyPerMember * daysPerCycle * members;
   const profitPerCycle = fee * members * daysPerCycle;
   const totalRotationDays = members * daysPerCycle;
@@ -97,6 +101,14 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
     };
     onSubmit(newGroup);
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-6 w-6 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Card className="border-none shadow-none bg-transparent">
