@@ -101,6 +101,10 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;

@@ -203,7 +203,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 text-primary animate-spin" />
           <p className="text-xs font-black uppercase tracking-widest text-primary italic">
@@ -216,7 +216,7 @@ export default function Dashboard() {
 
   if (groups.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-5 font-body">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background p-5 font-body">
         <div className="flex flex-col items-center gap-6 max-w-sm text-center">
           <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mb-2">
             <Users className="h-10 w-10 text-primary" />
@@ -250,7 +250,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background font-body pb-20">
+    <div className="min-h-[100dvh] bg-background font-body pb-20">
       <header className="px-5 pt-8 pb-6 bg-background/80 backdrop-blur-md sticky top-0 z-40 border-b border-primary/5">
         <div className="max-w-2xl mx-auto flex items-center justify-between mb-4">
           <div className="flex flex-col gap-1">
