@@ -23,16 +23,24 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+/tmp
+.temp
+.tmp
 
-# debug
+# logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .pnpm-debug.log*
+lerna-debug.log*
 
 # vercel
 .vercel
@@ -41,17 +49,24 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.genkit/*
+# env
 .env*
+.env
+.env.development
+.env.test
+.env.production
+
+# genkit
+.genkit/*
 
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# prisma
 /src/generated/prisma
+prisma/*.db
+prisma/*.db-journal
 
 # pnpm
 .pnpm-store/
-
-# Prisma local database
-prisma/*.db
-prisma/*.db-journal
