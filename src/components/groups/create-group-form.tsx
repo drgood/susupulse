@@ -36,12 +36,10 @@ const formSchema = z.object({
   maxMembers: z.coerce.number().min(2, 'At least 2 members'),
   daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
   contributionSchedule: z.enum(['all_days', 'weekdays_only', 'custom']),
-  activeDays: z.array(z.number()).default([1, 2, 3, 4, 5]),
+  activeDays: z.array(z.number()),
   momoNumber: z.string().min(10, 'Enter valid number'),
   momoName: z.string().min(2, 'Enter account name'),
-  startDate: z.date({
-    required_error: "A start date is required.",
-  }),
+  startDate: z.date(),
   memberNames: z.string().optional(),
 }).refine((data) => data.dailyContribution > data.feePerMark, {
   message: "Fee cannot be higher than contribution",
@@ -53,11 +51,13 @@ interface CreateGroupFormProps {
   onCancel: () => void;
 }
 
+type FormData = z.infer<typeof formSchema>;
+
 export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
   const [mounted, setMounted] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       name: '',
       dailyContribution: 21,
@@ -95,11 +95,12 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const names = values.memberNames?.split('\n').filter(n => n.trim() !== '') || [];
-    const membersList = Array.from({ length: values.maxMembers }).map((_, i) => ({
+      const membersList = Array.from({ length: values.maxMembers }).map((_, i) => ({
       id: `m-${Date.now()}-${i}`,
       name: names[i] || `Member ${i + 1}`,
       position: i + 1,
       daysPaid: 0,
+      creditRemainder: 0,
       hasCashedOut: false,
       joinDate: values.startDate.toISOString(),
     }));
@@ -116,6 +117,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       dailyContribution: values.dailyContribution,
       feePerMark: values.feePerMark,
       adminFee: profitPerCycle,
+      maxMembers: values.maxMembers,
       durationInWeeks: totalWeeks,
       paymentFrequency: 'daily',
       contributionSchedule: values.contributionSchedule as ContributionSchedule,

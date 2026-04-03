@@ -6,9 +6,22 @@ export interface Member {
   name: string;
   position: number;
   daysPaid: number; // Cumulative days paid
+  creditRemainder: number; // Leftover cash carried forward
   hasCashedOut: boolean;
   joinDate: string;
   lastPaymentDate?: string;
+}
+
+export interface PaymentLog {
+  id: string;
+  groupId: string;
+  memberId: string;
+  amountPaid: number;
+  previousCredit: number;
+  newRemainder: number;
+  previousDaysPaid: number;
+  newDaysPaid: number;
+  timestamp: string;
 }
 
 export interface SusuGroup {

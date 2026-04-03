@@ -38,8 +38,9 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
         
         const marks = '✅'.repeat(marksCount);
         const cashOutIcon = m.hasCashedOut ? ' 💰' : '';
+        const creditText = (m.creditRemainder || 0) > 0 ? ` (+GH¢${m.creditRemainder})` : '';
         
-        return `${m.position}. ${m.name}${marks ? ' ' + marks : ''}${cashOutIcon}`;
+        return `${m.position}. ${m.name}${marks ? ' ' + marks : ''}${creditText}${cashOutIcon}`;
       })
       .join('\n');
       

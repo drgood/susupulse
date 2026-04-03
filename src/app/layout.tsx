@@ -1,10 +1,19 @@
-import type {Metadata} from 'next';
-import './globals.css';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'SusuPulse | Smart Susu Management',
-  description: 'Proactive insights and streamlined management for Susu administrators.',
+  title: "SusuPulse | Smart Susu Management",
+  description:
+    "Proactive insights and streamlined management for Susu administrators.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SusuPulse",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
@@ -16,13 +25,18 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className="font-body antialiased selection:bg-primary/20">
-        <FirebaseClientProvider>
-          {children}
-        </FirebaseClientProvider>
+        {children}
       </body>
     </html>
   );

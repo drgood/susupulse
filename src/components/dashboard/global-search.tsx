@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { SusuGroup } from '@/lib/types';
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Search, User, ArrowRight, Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,7 @@ export function GlobalSearch({ isOpen, onClose, groups, onSelectMember }: Global
       <DialogContent className="max-w-md p-0 overflow-hidden border-none rounded-[1.5rem] shadow-2xl">
         <DialogHeader className="p-4 bg-muted/50 border-b">
           <DialogTitle className="sr-only">Search Members</DialogTitle>
+          <DialogDescription className="sr-only">Search for a member across all groups.</DialogDescription>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
