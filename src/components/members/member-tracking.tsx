@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, Plus, Minus, Clock, Wallet, Coins } from 'lucide-react';
+import { Check, Plus, Minus, Clock, Wallet, Coins, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn, calculateActiveDaysPassed } from '@/lib/utils';
 import { db } from '@/lib/db';
+import { ManageMembersDialog } from './manage-members-dialog';
 
 interface MemberTrackingProps {
   group: SusuGroup;
   onUpdateMember: (memberId: string, updates: Partial<Member>) => void;
+  onMembersUpdate?: () => void;
 }
 
 function QuickPayPopover({ group, member, onUpdateMember }: { group: SusuGroup, member: Member, onUpdateMember: (id: string, updates: Partial<Member>) => void }) {
@@ -144,8 +146,9 @@ function QuickPayPopover({ group, member, onUpdateMember }: { group: SusuGroup, 
   );
 }
 
-export function MemberTracking({ group, onUpdateMember }: MemberTrackingProps) {
+export function MemberTracking({ group, onUpdateMember, onMembersUpdate }: MemberTrackingProps) {
   const { toast } = useToast();
+  const [isManageOpen, setIsManageOpen] = useState(false);
 
   const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentRecipientPosition = Math.floor(activeDaysPassed / group.daysPerCycle) + 1;
@@ -168,9 +171,20 @@ export function MemberTracking({ group, onUpdateMember }: MemberTrackingProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <h2 className="text-lg font-bold">Circle Members</h2>
-        <Badge variant="outline" className="rounded-full border-primary/20 text-primary px-3">
-          {group.members.length} Total
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="rounded-full border-primary/20 text-primary px-3">
+            {group.members.length} Total
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsManageOpen(true)}
+            className="h-8 rounded-full px-3 text-xs font-bold"
+          >
+            <Settings2 className="h-3 w-3 mr-1.5" />
+            Manage
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -287,11 +301,13 @@ export function MemberTracking({ group, onUpdateMember }: MemberTrackingProps) {
           );
         })}
       </div>
-      
-      <Button variant="outline" className="w-full h-12 rounded-xl border-dashed border-primary/40 text-primary font-bold">
-        <Plus className="h-4 w-4 mr-2" />
-        Add New Member
-      </Button>
+
+      <ManageMembersDialog
+        open={isManageOpen}
+        onOpenChange={setIsManageOpen}
+        group={group}
+        onMembersUpdate={onMembersUpdate || (() => {})}
+      />
     </div>
   );
 }

@@ -365,6 +365,7 @@ export default function Dashboard() {
                   <MemberTracking
                     group={activeGroup}
                     onUpdateMember={updateMember}
+                    onMembersUpdate={() => {}}
                   />
                 </TabsContent>
 
