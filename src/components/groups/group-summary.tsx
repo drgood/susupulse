@@ -1,19 +1,36 @@
 'use client';
 
+import { useState } from 'react';
 import { SusuGroup } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Award, Calendar, Wallet, Info, TrendingUp, Users, Landmark } from 'lucide-react';
-import { calculateActiveDaysPassed, getWeeklyFrequency } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Award, Calendar, Wallet, Info, TrendingUp, Users, Landmark, RefreshCw, CheckCircle } from 'lucide-react';
+import { calculateActiveDaysPassed, getWeeklyFrequency, completeCycle, getCycleStats, isCycleComplete } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useToast } from '@/hooks/use-toast';
+import { db } from '@/lib/db';
 
-export function GroupSummary({ group }: { group: SusuGroup }) {
+export function GroupSummary({ group, onCycleComplete }: { group: SusuGroup, onCycleComplete?: () => void }) {
+  const { toast } = useToast();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  
   const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentCycleIndex = Math.floor(activeDaysPassed / group.daysPerCycle);
+  const recipientsPerCycle = group.recipientsPerCycle || 1;
+  
   const currentRecipient = group.members.find(m => m.position === (currentCycleIndex + 1));
   
-  const totalCollectedSoFar = group.members.reduce((acc, m) => acc + (m.daysPaid * group.dailyContribution), 0);
-  const totalAdminProfit = group.members.reduce((acc, m) => acc + (m.daysPaid * (group.feePerMark || 1)), 0);
+  const cycleStats = getCycleStats(group);
+  const cycleComplete = isCycleComplete(group);
   
   const weeklyFrequency = getWeeklyFrequency(group);
   const weeklyCollectionPotential = group.dailyContribution * group.maxMembers * weeklyFrequency;
@@ -24,14 +41,48 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
     ? 'Mon-Fri' 
     : `${weeklyFrequency} days/week`;
 
+  const rotation = group.currentRotation || 1;
+  const canCompleteCycle = cycleComplete;
+
+  const handleCompleteCycle = async () => {
+    try {
+      const result = completeCycle(group);
+      await db.groups.update(group.id, {
+        members: result.members,
+        currentRotation: result.newRotation,
+        startDate: result.newStartDate
+      });
+      setIsConfirmOpen(false);
+      toast({
+        title: "Cycle Complete!",
+        description: `Rotation ${rotation} ended. Starting Rotation ${result.newRotation}.`,
+      });
+      onCycleComplete?.();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to complete cycle.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="border-none shadow-sm bg-white overflow-hidden">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-bold">Group Pulse</CardTitle>
-          <Badge variant="secondary" className="rounded-full bg-primary/10 text-primary border-none">
-            Cycle {currentCycleIndex + 1}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="rounded-full bg-accent/10 text-accent border-none">
+              Round {rotation}
+            </Badge>
+            <Button
+              variant={canCompleteCycle ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsConfirmOpen(true)}
+              disabled={!canCompleteCycle}
+              className="h-7 text-[10px] px-2 rounded-full font-bold"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              End Round
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="bg-accent/5 p-4 rounded-2xl border border-accent/10 flex items-center gap-4">
@@ -43,6 +94,13 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
               <h3 className="text-xl font-black">{currentRecipient?.name || 'End of Rotation'}</h3>
               <p className="text-xs text-muted-foreground">Pot: GH¢ {group.cashOutAmount.toLocaleString()}</p>
             </div>
+            {cycleComplete ? (
+              <CheckCircle className="h-6 w-6 text-green-500" />
+            ) : (
+              <Badge variant="outline" className="rounded-full border-accent/30 text-accent bg-accent/5">
+                {cycleStats.cashedOutCount}/{recipientsPerCycle} cashed
+              </Badge>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -52,7 +110,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
                 <span className="text-[10px] font-black uppercase tracking-wider">Total Collection</span>
               </div>
               <p className="text-xl font-black text-primary leading-none">
-                GH¢ {totalCollectedSoFar.toLocaleString()}
+                GH¢ {cycleStats.totalCollectedThisCycle.toLocaleString()}
               </p>
             </div>
             <div className="bg-accent/5 p-3 rounded-xl border border-accent/10">
@@ -61,7 +119,7 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
                 <span className="text-[10px] font-black uppercase tracking-wider">Admin Profit</span>
               </div>
               <p className="text-xl font-black text-accent leading-none">
-                GH¢ {totalAdminProfit.toLocaleString()}
+                GH¢ {cycleStats.adminProfitThisCycle.toLocaleString()}
               </p>
             </div>
           </div>
@@ -106,6 +164,27 @@ export function GroupSummary({ group }: { group: SusuGroup }) {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <DialogContent className="rounded-2xl border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle>End Rotation {rotation}?</DialogTitle>
+            <DialogDescription>
+              This will reset all members' payment progress and start a new rotation.
+              <br /><br />
+              {cycleStats.cashedOutCount} recipient(s) cashed out this round.
+              <br />
+              Total collected: GH¢{cycleStats.totalCollectedThisCycle.toLocaleString()}
+              <br />
+              Admin profit: GH¢{cycleStats.adminProfitThisCycle.toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmOpen(false)}>Cancel</Button>
+            <Button onClick={handleCompleteCycle}>Confirm & Start Round {rotation + 1}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

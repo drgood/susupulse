@@ -97,8 +97,8 @@ export function PinLogin({ onAuthenticated }: PinLoginProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="max-w-xs w-full space-y-8 animate-in fade-in zoom-in duration-500">
+    <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-4">
+      <div className="max-w-xs w-full space-y-6 animate-in fade-in zoom-in duration-500 pb-10">
         <div className="text-center space-y-2">
           <div className="mx-auto h-16 w-16 bg-primary/10 rounded-[2rem] flex items-center justify-center mb-4 shadow-inner">
             <Fingerprint className="h-8 w-8 text-primary animate-pulse" />

@@ -36,11 +36,13 @@ export interface SusuGroup {
   contributionSchedule: ContributionSchedule;
   activeDays?: number[]; // [0, 1, 2, 3, 4, 5, 6] where 0 is Sunday
   daysPerCycle: number; // How many marks (contribution days) per payout
+  recipientsPerCycle: number; // How many people receive payout per cycle
   cashOutAmount: number;
   momoNumber: string;
   momoName: string;
   members: Member[];
-  startDate: string; // The date the first cycle began
+  startDate: string;
+  currentRotation: number;
   createdAt: string;
 }
 

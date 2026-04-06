@@ -6,11 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Check, Plus, Minus, Clock, Wallet, Coins, Settings2 } from 'lucide-react';
+import { Check, Plus, Minus, Clock, Wallet, Coins, Settings2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { cn, calculateActiveDaysPassed } from '@/lib/utils';
+import { cn, calculateActiveDaysPassed, getOtherCashedOutMembers } from '@/lib/utils';
 import { db } from '@/lib/db';
 import { ManageMembersDialog } from './manage-members-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface MemberTrackingProps {
   group: SusuGroup;
@@ -149,6 +159,8 @@ function QuickPayPopover({ group, member, onUpdateMember }: { group: SusuGroup, 
 export function MemberTracking({ group, onUpdateMember, onMembersUpdate }: MemberTrackingProps) {
   const { toast } = useToast();
   const [isManageOpen, setIsManageOpen] = useState(false);
+  const [isPayoutWarningOpen, setIsPayoutWarningOpen] = useState(false);
+  const [pendingPayoutMember, setPendingPayoutMember] = useState<Member | null>(null);
 
   const activeDaysPassed = calculateActiveDaysPassed(group);
   const currentRecipientPosition = Math.floor(activeDaysPassed / group.daysPerCycle) + 1;
@@ -159,12 +171,24 @@ export function MemberTracking({ group, onUpdateMember, onMembersUpdate }: Membe
     onUpdateMember(member.id, { daysPaid: newDays, lastPaymentDate: new Date().toISOString() });
   };
 
-  const handleToggleCashOut = (member: Member) => {
+  const confirmCashOut = (member: Member) => {
     onUpdateMember(member.id, { hasCashedOut: !member.hasCashedOut });
     toast({
       title: member.hasCashedOut ? "Reverted Cash Out" : "Confirmed Cash Out",
       description: `GH¢ ${group.cashOutAmount} payout recorded for ${member.name}.`,
     });
+  };
+
+  const handleToggleCashOut = (member: Member) => {
+    if (!member.hasCashedOut) {
+      const otherCashedOut = getOtherCashedOutMembers(group, member.id);
+      if (otherCashedOut.length > 0) {
+        setPendingPayoutMember(member);
+        setIsPayoutWarningOpen(true);
+        return;
+      }
+    }
+    confirmCashOut(member);
   };
 
   return (
@@ -308,6 +332,43 @@ export function MemberTracking({ group, onUpdateMember, onMembersUpdate }: Membe
         group={group}
         onMembersUpdate={onMembersUpdate || (() => {})}
       />
+
+      <AlertDialog open={isPayoutWarningOpen} onOpenChange={setIsPayoutWarningOpen}>
+        <AlertDialogContent className="rounded-2xl border-none shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Multiple Recipients Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              {pendingPayoutMember && (
+                <>
+                  <span className="font-bold">{pendingPayoutMember.name}</span> is already cashed out this rotation.
+                  <br /><br />
+                  The following member(s) have already received their payout:
+                  <ul className="list-disc pl-5 mt-2 space-y-1">
+                    {getOtherCashedOutMembers(group, pendingPayoutMember.id).map(m => (
+                      <li key={m.id}>{m.name} - GH¢{group.cashOutAmount}</li>
+                    ))}
+                  </ul>
+                  <br />
+                  Are you sure you want to mark {pendingPayoutMember.name} as cashed out as well?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingPayoutMember(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (pendingPayoutMember) confirmCashOut(pendingPayoutMember);
+              setIsPayoutWarningOpen(false);
+              setPendingPayoutMember(null);
+            }}>
+              Yes, Proceed Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

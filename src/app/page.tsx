@@ -30,7 +30,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { calculateActiveDaysPassed } from "@/lib/utils";
+import { calculateActiveDaysPassed, isMemberDefaulter } from "@/lib/utils";
 
 export default function Dashboard() {
   const groupsRaw = useLiveQuery(() => db.groups.toArray());
@@ -57,9 +57,11 @@ export default function Dashboard() {
       activeDays: [0, 1, 2, 3, 4, 5, 6],
       daysPerCycle: 7,
       cashOutAmount: 2800,
+      recipientsPerCycle: 1,
       momoNumber: "0209489849",
       momoName: "Sung Shmair Mumuni",
       startDate: new Date().toISOString(),
+      currentRotation: 1,
       createdAt: new Date().toISOString(),
       members: [
         { id: crypto.randomUUID(), name: "Safia", position: 1, daysPaid: 5, creditRemainder: 0, hasCashedOut: false, joinDate: new Date().toISOString() },
@@ -98,9 +100,11 @@ export default function Dashboard() {
       activeDays: [0, 1, 2, 3, 4, 5, 6],
       daysPerCycle: 7,
       cashOutAmount: 1500,
+      recipientsPerCycle: 1,
       momoNumber: "0209489849",
       momoName: "Sung Shmair Mumuni",
       startDate: new Date().toISOString(),
+      currentRotation: 1,
       createdAt: new Date().toISOString(),
       members: [
         { id: crypto.randomUUID(), name: "Nuura", position: 1, daysPaid: 6, creditRemainder: 0, hasCashedOut: false, joinDate: new Date().toISOString() },
@@ -156,14 +160,11 @@ export default function Dashboard() {
 
     groups.forEach((g) => {
       totalMembers += g.members.length;
-      const activeDaysPassed = calculateActiveDaysPassed(g);
-      const currentCycleIndex = Math.floor(activeDaysPassed / g.daysPerCycle);
-      const targetMarks = (currentCycleIndex + 1) * g.daysPerCycle;
 
       g.members.forEach((m) => {
         totalCollected += m.daysPaid * g.dailyContribution;
         adminProfit += m.daysPaid * (g.feePerMark || 1);
-        if (m.daysPaid < targetMarks && !m.hasCashedOut) defaulterCount++;
+        if (isMemberDefaulter(g, m)) defaulterCount++;
       });
     });
 

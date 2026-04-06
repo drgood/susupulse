@@ -35,6 +35,7 @@ const formSchema = z.object({
   feePerMark: z.coerce.number().min(0, 'Required'),
   maxMembers: z.coerce.number().min(2, 'At least 2 members'),
   daysPerCycle: z.coerce.number().min(1, 'Minimum 1 day'),
+  recipientsPerCycle: z.coerce.number().min(1, 'Minimum 1 recipient'),
   contributionSchedule: z.enum(['all_days', 'weekdays_only', 'custom']),
   activeDays: z.array(z.number()),
   momoNumber: z.string().min(10, 'Enter valid number'),
@@ -64,6 +65,7 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       feePerMark: 1,
       maxMembers: 20,
       daysPerCycle: 7,
+      recipientsPerCycle: 1,
       contributionSchedule: 'all_days',
       activeDays: [1, 2, 3, 4, 5],
       momoNumber: '',
@@ -81,17 +83,20 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
   const fee = form.watch('feePerMark') || 0;
   const membersCount = form.watch('maxMembers') || 0;
   const daysPerCycle = form.watch('daysPerCycle') || 0;
+  const recipientsPerCycle = form.watch('recipientsPerCycle') || 1;
   const scheduleType = form.watch('contributionSchedule');
   const activeDays = form.watch('activeDays');
+  const startDate = form.watch('startDate');
 
-  const netDailyPerMember = Math.max(0, daily - fee);
-  const cashOutAmount = netDailyPerMember * daysPerCycle * membersCount;
+  const totalCashOut = daily * daysPerCycle * membersCount;
+  const cashOutAmount = totalCashOut / recipientsPerCycle;
   const profitPerCycle = fee * membersCount * daysPerCycle;
   const totalRotationMarks = membersCount * daysPerCycle;
 
   // Calculate duration based on schedule density
   const activeDaysPerWeek = scheduleType === 'all_days' ? 7 : scheduleType === 'weekdays_only' ? 5 : activeDays.length || 1;
   const totalWeeks = Math.ceil(totalRotationMarks / activeDaysPerWeek);
+  const endDate = startDate ? new Date(startDate.getTime() + (totalWeeks * 7 * 24 * 60 * 60 * 1000)) : null;
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
     const names = values.memberNames?.split('\n').filter(n => n.trim() !== '') || [];
@@ -123,10 +128,12 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
       contributionSchedule: values.contributionSchedule as ContributionSchedule,
       activeDays: finalActiveDays,
       daysPerCycle: values.daysPerCycle,
+      recipientsPerCycle: values.recipientsPerCycle,
       cashOutAmount: cashOutAmount,
       momoNumber: values.momoNumber,
       momoName: values.momoName,
       startDate: values.startDate.toISOString(),
+      currentRotation: 1,
       createdAt: new Date().toISOString(),
       members: membersList,
     };
@@ -225,6 +232,22 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
                     <FormControl>
                       <div className="relative">
                         <Settings2 className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
+                        <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="recipientsPerCycle"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Recipients per Cycle</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Users className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground" />
                         <Input type="number" className="pl-10 h-12 rounded-xl" {...field} />
                       </div>
                     </FormControl>
@@ -413,13 +436,23 @@ export function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormProps) {
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground font-medium">Cash Out Pot (The Hand):</span>
+                  <span className="text-xs text-muted-foreground font-medium">Cash Out Pot (Total):</span>
+                  <span className="text-lg font-black text-primary">GH¢ {totalCashOut.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground font-medium">Per Recipient ({recipientsPerCycle}x):</span>
                   <span className="text-lg font-black text-primary">GH¢ {cashOutAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-primary/10">
                   <span className="text-xs text-muted-foreground font-medium">Target Cycle Profit:</span>
                   <span className="font-bold text-accent">GH¢ {profitPerCycle.toLocaleString()}</span>
                 </div>
+                {endDate && (
+                  <div className="flex justify-between items-center pt-1 border-t border-primary/10">
+                    <span className="text-xs text-muted-foreground font-medium">Est. End Date:</span>
+                    <span className="font-bold text-primary">{format(endDate, 'MMM d, yyyy')}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-start gap-2 pt-2 border-t border-primary/10">

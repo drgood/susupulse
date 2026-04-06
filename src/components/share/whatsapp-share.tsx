@@ -37,10 +37,10 @@ export function WhatsAppShare({ group }: { group: SusuGroup }) {
         const marksCount = Math.min(group.daysPerCycle, paidInCurrentCycle);
         
         const marks = '✅'.repeat(marksCount);
-        const cashOutIcon = m.hasCashedOut ? ' 💰' : '';
+        const cashOutIcon = m.hasCashedOut ? '💰 ' : '';
         const creditText = (m.creditRemainder || 0) > 0 ? ` (+GH¢${m.creditRemainder})` : '';
         
-        return `${m.position}. ${m.name}${marks ? ' ' + marks : ''}${creditText}${cashOutIcon}`;
+        return `${m.position}. ${cashOutIcon}${m.name}${marks ? ' ' + marks : ''}${creditText}`;
       })
       .join('\n');
       
